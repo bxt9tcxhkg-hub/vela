@@ -1,0 +1,52 @@
+{
+  "name": "@vela/desktop",
+  "version": "0.1.0",
+  "description": "Vela desktop app – Electron shell",
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "concurrently \"pnpm run electron:dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "tsc -p tsconfig.json && electron-builder",
+    "electron:dev": "tsc -p tsconfig.json --watch",
+    "pack": "electron-builder --dir",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux",
+    "clean": "rm -rf dist out"
+  },
+  "dependencies": {
+    "@vela/core": "workspace:*",
+    "electron-updater": "^6.1.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "electron": "^30.0.0",
+    "electron-builder": "^24.9.0",
+    "typescript": "^5.4.0",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "ai.vela.app",
+    "productName": "Vela",
+    "copyright": "Copyright © 2026 Vela Contributors",
+    "directories": {
+      "output": "release/${version}"
+    },
+    "files": ["dist/**/*", "node_modules/**/*"],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": ["dmg", "zip"]
+    },
+    "win": {
+      "target": [{"target": "nsis", "arch": ["x64"]}]
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Utility"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

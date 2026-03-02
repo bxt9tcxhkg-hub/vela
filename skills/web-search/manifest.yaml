@@ -1,0 +1,24 @@
+name: web-search
+version: 1.0.0
+description: Search the web and return summarized results
+author: vela-team
+license: Apache-2.0
+permissions:
+  - network:read
+inputs:
+  - name: query
+    type: string
+    required: true
+    description: The search query
+  - name: maxResults
+    type: number
+    required: false
+    description: Maximum number of results to return (default 5)
+guardrails:
+  confirmBeforeExecute: false
+  maxTokensOutput: 2000
+  allowedDomains:
+    - "*.google.com"
+    - "*.bing.com"
+    - "*.duckduckgo.com"
+  riskLevel: low

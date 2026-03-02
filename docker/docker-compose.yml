@@ -1,0 +1,40 @@
+version: '3.9'
+
+services:
+  vela:
+    image: ghcr.io/msoyucok/vela:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "${VELA_PORT:-3000}:3000"
+    volumes:
+      - vela-data:/data
+      - ./config:/config:ro
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://vela:${POSTGRES_PASSWORD}@db:5432/vela
+      - VELA_DATA_DIR=/data
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=vela
+      - POSTGRES_USER=vela
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vela"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  vela-data:
+  postgres-data:
