@@ -8,6 +8,8 @@ function randomId() {
   return Math.random().toString(36).slice(2)
 }
 
+const API_BASE = ''
+
 export function ChatPage() {
   const { state, dispatch } = useVelaStore()
   const [input, setInput] = useState('')
@@ -36,7 +38,7 @@ export function ChatPage() {
           dispatch({ type: 'SET_CONFIRMATION', payload: null })
           dispatch({
             type: 'ADD_MESSAGE',
-            payload: { id: randomId(), role: 'vela', content: 'Verstanden, ich lasse die E-Mails unberuehrt.', timestamp: new Date() },
+            payload: { id: randomId(), role: 'vela', content: 'Verstanden, ich lasse die E-Mails unberührt.', timestamp: new Date() },
           })
         },
       }
@@ -63,10 +65,11 @@ export function ChatPage() {
     ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'
   }
 
-  function sendMessage() {
+  async function sendMessage() {
     const text = input.trim()
     if (!text) return
 
+    // Add user message
     dispatch({
       type: 'ADD_MESSAGE',
       payload: { id: randomId(), role: 'user', content: text, timestamp: new Date() },
@@ -74,19 +77,88 @@ export function ChatPage() {
     setInput('')
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
 
+    // Show typing indicator
     dispatch({ type: 'SET_TYPING', payload: true })
-    setTimeout(() => {
+
+    // Build messages array for API (convert 'vela' role to 'assistant')
+    const apiMessages = [
+      ...state.messages
+        .filter((m: Message) => m.role === 'user' || m.role === 'vela')
+        .map((m: Message) => ({
+          role: m.role === 'vela' ? 'assistant' : 'user' as 'user' | 'assistant',
+          content: m.content,
+        })),
+      { role: 'user' as const, content: text },
+    ]
+
+    const velaId = randomId()
+
+    try {
+      const response = await fetch(`${API_BASE}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: apiMessages }),
+      })
+
+      if (!response.ok || !response.body) {
+        throw new Error(`Server error: ${response.status}`)
+      }
+
+      dispatch({ type: 'SET_TYPING', payload: false })
+
+      // Add empty vela message to stream into
+      dispatch({
+        type: 'ADD_MESSAGE',
+        payload: { id: velaId, role: 'vela', content: '', timestamp: new Date() },
+      })
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let fullText = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const data = line.slice(6)
+          if (data === '[DONE]') break
+
+          try {
+            const parsed = JSON.parse(data)
+            if (parsed.error) {
+              throw new Error(parsed.error)
+            }
+            if (parsed.text) {
+              fullText += parsed.text
+              dispatch({
+                type: 'UPDATE_MESSAGE',
+                payload: { id: velaId, content: fullText },
+              })
+            }
+          } catch {
+            // skip malformed lines
+          }
+        }
+      }
+    } catch (_err) {
       dispatch({ type: 'SET_TYPING', payload: false })
       dispatch({
         type: 'ADD_MESSAGE',
         payload: {
-          id: randomId(),
+          id: velaId,
           role: 'vela',
-          content: 'Ich verstehe. Soll ich das fuer dich erledigen?',
+          content: 'Ich konnte keine Verbindung zum Server herstellen. Ist der Server gestartet?',
           timestamp: new Date(),
         },
       })
-    }, 1500)
+    }
   }
 
   return (
@@ -144,7 +216,7 @@ export function ChatPage() {
             </svg>
           </button>
         </div>
-        <p className="text-xs text-bark mt-1.5 text-center">Enter zum Senden · Shift+Enter fuer neue Zeile</p>
+        <p className="text-xs text-bark mt-1.5 text-center">Enter zum Senden · Shift+Enter für neue Zeile</p>
       </div>
     </div>
   )

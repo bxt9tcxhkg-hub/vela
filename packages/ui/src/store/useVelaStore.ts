@@ -34,6 +34,7 @@ export interface VelaState {
 
 type Action =
   | { type: 'ADD_MESSAGE'; payload: Message }
+  | { type: 'UPDATE_MESSAGE'; payload: { id: string; content: string } }
   | { type: 'SET_TYPING'; payload: boolean }
   | { type: 'SET_TRUST'; payload: VelaState['trustLevel'] }
   | { type: 'SET_MODEL'; payload: string }
@@ -47,7 +48,7 @@ const initialActivities: Activity[] = [
 ]
 
 const initialMessages: Message[] = [
-  { id: 'm1', role: 'user', content: 'Raeum meinen Posteingang auf und loesch den Spam.', timestamp: new Date() },
+  { id: 'm1', role: 'user', content: 'Räum meinen Posteingang auf und lösch den Spam.', timestamp: new Date() },
   { id: 'm2', role: 'vela', content: 'Ich habe 23 Spam-Mails gefunden. Soll ich diese archivieren?', timestamp: new Date() },
 ]
 
@@ -64,6 +65,13 @@ function reducer(state: VelaState, action: Action): VelaState {
   switch (action.type) {
     case 'ADD_MESSAGE':
       return { ...state, messages: [...state.messages, action.payload] }
+    case 'UPDATE_MESSAGE':
+      return {
+        ...state,
+        messages: state.messages.map((m) =>
+          m.id === action.payload.id ? { ...m, content: action.payload.content } : m
+        ),
+      }
     case 'SET_TYPING':
       return { ...state, isTyping: action.payload }
     case 'SET_TRUST':

@@ -16,7 +16,7 @@ export function ActivityPage() {
     <div className="flex-1 bg-cream min-h-screen">
       <header className="px-6 py-8 border-b border-sand bg-warm">
         <h1 className="font-fraunces font-semibold text-2xl text-ink">Aktivität</h1>
-        <p className="text-earth text-sm mt-1">Was Vela fuer dich erledigt hat</p>
+        <p className="text-earth text-sm mt-1">Was Vela für dich erledigt hat</p>
       </header>
 
       <div className="px-4 md:px-8 py-6 max-w-2xl">

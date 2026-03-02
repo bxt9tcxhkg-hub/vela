@@ -1,0 +1,26 @@
+{
+  "name": "@vela/server",
+  "version": "0.1.0",
+  "description": "Vela backend server – Fastify + AI providers",
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@vela/core": "workspace:*",
+    "@anthropic-ai/sdk": "^0.20.0",
+    "fastify": "^4.27.0",
+    "@fastify/cors": "^9.0.0",
+    "dotenv": "^16.4.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0",
+    "tsx": "^4.7.0"
+  },
+  "type": "module"
+}
