@@ -13,6 +13,8 @@ const API_BASE = ''
 export function ChatPage() {
   const { state, dispatch } = useVelaStore()
   const [input, setInput] = useState('')
+  const [streamingId, setStreamingId] = useState<string | null>(null)
+  const [streamingContent, setStreamingContent] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -106,11 +108,9 @@ export function ChatPage() {
 
       dispatch({ type: 'SET_TYPING', payload: false })
 
-      // Add empty vela message to stream into
-      dispatch({
-        type: 'ADD_MESSAGE',
-        payload: { id: velaId, role: 'vela', content: '', timestamp: new Date() },
-      })
+      // Set streaming state – renders live in UI
+      setStreamingId(velaId)
+      setStreamingContent('')
 
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
@@ -127,26 +127,28 @@ export function ChatPage() {
 
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue
-          const data = line.slice(6)
-          if (data === '[DONE]') break
-
+          const raw = line.slice(6).trim()
+          if (raw === '[DONE]') break
           try {
-            const parsed = JSON.parse(data)
-            if (parsed.error) {
-              throw new Error(parsed.error)
-            }
+            const parsed = JSON.parse(raw) as { text?: string; error?: string }
+            if (parsed.error) throw new Error(parsed.error)
             if (parsed.text) {
               fullText += parsed.text
-              dispatch({
-                type: 'UPDATE_MESSAGE',
-                payload: { id: velaId, content: fullText },
-              })
+              setStreamingContent(fullText)
             }
           } catch {
             // skip malformed lines
           }
         }
       }
+
+      // Commit final streamed message to store
+      setStreamingId(null)
+      setStreamingContent('')
+      dispatch({
+        type: 'ADD_MESSAGE',
+        payload: { id: velaId, role: 'vela', content: fullText, timestamp: new Date() },
+      })
     } catch (_err) {
       dispatch({ type: 'SET_TYPING', payload: false })
       dispatch({
@@ -189,7 +191,13 @@ export function ChatPage() {
           <ConfirmDialog action={state.pendingConfirmation} />
         )}
 
-        {state.isTyping && <TypingIndicator />}
+        {streamingId && (
+          <ChatMessage
+            key={streamingId + '-stream'}
+            message={{ id: streamingId, role: 'vela', content: streamingContent || '…', timestamp: new Date() }}
+          />
+        )}
+        {state.isTyping && !streamingId && <TypingIndicator />}
         <div ref={bottomRef} />
       </div>
 
