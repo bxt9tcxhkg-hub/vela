@@ -1,14 +1,26 @@
 import React from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { VelaProvider } from './store/useVelaStore'
+import { Sidebar } from './components/Sidebar'
+import { ChatPage } from './pages/ChatPage'
+import { ActivityPage } from './pages/ActivityPage'
+import { SettingsPage } from './pages/SettingsPage'
 
-export default function App(): React.JSX.Element {
+export default function App() {
   return (
-    <div className="min-h-screen bg-[#faf7f2] flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-6xl font-bold text-[#1a150e] mb-4">
-          V<em className="italic text-[#5b8fa8] not-italic">e</em>la
-        </h1>
-        <p className="text-[#9a8872] text-lg">Your personal AI agent — starting up…</p>
-      </div>
-    </div>
+    <VelaProvider>
+      <BrowserRouter>
+        <div className="flex h-screen overflow-hidden bg-cream">
+          <Sidebar />
+          <main className="flex-1 overflow-hidden">
+            <Routes>
+              <Route path="/" element={<ChatPage />} />
+              <Route path="/activity" element={<ActivityPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Routes>
+          </main>
+        </div>
+      </BrowserRouter>
+    </VelaProvider>
   )
 }
