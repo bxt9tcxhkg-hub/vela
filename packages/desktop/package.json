@@ -6,12 +6,12 @@
   "main": "dist/main.js",
   "scripts": {
     "dev": "concurrently \"pnpm run electron:dev\" \"wait-on http://localhost:5173 && electron .\"",
-    "build": "tsc -p tsconfig.json && electron-builder",
+    "build": "tsc -p tsconfig.json",
     "electron:dev": "tsc -p tsconfig.json --watch",
     "pack": "electron-builder --dir",
-    "dist:win": "electron-builder --win",
-    "dist:mac": "electron-builder --mac",
-    "dist:linux": "electron-builder --linux",
+    "dist:win": "tsc -p tsconfig.json && electron-builder --win",
+    "dist:mac": "tsc -p tsconfig.json && electron-builder --mac",
+    "dist:linux": "tsc -p tsconfig.json && electron-builder --linux",
     "clean": "rm -rf dist out"
   },
   "dependencies": {
@@ -32,21 +32,43 @@
     "directories": {
       "output": "release/${version}"
     },
-    "files": ["dist/**/*", "node_modules/**/*"],
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*"
+    ],
     "mac": {
       "category": "public.app-category.productivity",
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
-      "target": [{"target": "nsis", "arch": ["x64"]}]
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "category": "Utility"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
-    }
-  }
+    },
+    "publish": null
+  },
+  "author": {
+    "name": "Vela Contributors",
+    "email": "dev@vela.ai"
+  },
+  "homepage": "https://github.com/bxt9tcxhkg-hub/vela"
 }
