@@ -36,20 +36,21 @@ export function SettingsPage() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [testError, setTestError] = useState('')
-  const [apiKeyStatus, setApiKeyStatus] = useState<'loading' | 'connected' | 'missing'>('loading')
-  const [serverModel, setServerModel] = useState<string>('')
+
+  // Persönlichkeit state
+  const [velaName, setVelaName] = useState('Vela')
+  const [systemPrompt, setSystemPrompt] = useState('Hilfsbereit, präzise, auf Deutsch')
+  const [personalitySaveStatus, setPersonalitySaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   useEffect(() => {
     fetch('http://localhost:3000/api/settings')
       .then((r) => r.json())
-      .then((data: { hasAnthropicKey: boolean; model: string }) => {
-        setApiKeyStatus(data.hasAnthropicKey ? 'connected' : 'missing')
-        if (data.model) {
-          setActiveModel(data.model)
-          setServerModel(data.model)
-        }
+      .then((data: { hasAnthropicKey: boolean; model: string; velaName?: string; systemPrompt?: string }) => {
+        if (data.model) setActiveModel(data.model)
+        if (data.velaName) setVelaName(data.velaName)
+        if (data.systemPrompt) setSystemPrompt(data.systemPrompt)
       })
-      .catch(() => { setApiKeyStatus('missing') })
+      .catch(() => {})
   }, [])
 
   function connectService(id: string) {
@@ -69,11 +70,24 @@ export function SettingsPage() {
         body: JSON.stringify(body),
       })
       setSaveStatus('saved')
-      setApiKeyStatus('connected')
-      setServerModel(activeModel)
       setTimeout(() => setSaveStatus('idle'), 2000)
     } catch {
       setSaveStatus('error')
+    }
+  }
+
+  async function savePersonality() {
+    setPersonalitySaveStatus('saving')
+    try {
+      await fetch('http://localhost:3000/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ velaName: velaName.trim(), systemPrompt: systemPrompt.trim() }),
+      })
+      setPersonalitySaveStatus('saved')
+      setTimeout(() => setPersonalitySaveStatus('idle'), 2000)
+    } catch {
+      setPersonalitySaveStatus('error')
     }
   }
 
@@ -103,22 +117,6 @@ export function SettingsPage() {
         <section>
           <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">KI-Verbindung</h2>
           <p className="text-earth text-sm mb-4">Verbinde Vela mit deinem KI-Anbieter.</p>
-
-          {/* Status Banner */}
-          <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl mb-4 text-sm font-medium ${
-            apiKeyStatus === 'loading' ? 'bg-sand/50 text-earth' :
-            apiKeyStatus === 'connected' ? 'bg-green-100 text-green-700' :
-            'bg-red-50 text-red-600'
-          }`}>
-            {apiKeyStatus === 'loading' && <span>⏳ Lade Konfiguration...</span>}
-            {apiKeyStatus === 'connected' && (
-              <>
-                <span>✅ Verbunden</span>
-                {serverModel && <span className="text-green-600/70 font-normal">· Modell: {serverModel}</span>}
-              </>
-            )}
-            {apiKeyStatus === 'missing' && <span>❌ Nicht konfiguriert – bitte API Key eingeben</span>}
-          </div>
 
           <div className="bg-warm border border-sand rounded-2xl p-5 space-y-4">
             <div className="flex items-center gap-3">
@@ -170,6 +168,48 @@ export function SettingsPage() {
               {testStatus === 'success' && <span className="text-green-600 text-sm">✓ Verbindung erfolgreich</span>}
               {testStatus === 'error' && <span className="text-red-500 text-sm">✗ {testError}</span>}
               {saveStatus === 'error' && <span className="text-red-500 text-sm">Fehler beim Speichern</span>}
+            </div>
+          </div>
+        </section>
+
+        {/* Persönlichkeit */}
+        <section>
+          <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">Persönlichkeit</h2>
+          <p className="text-earth text-sm mb-4">Wie soll Vela heißen und sich verhalten?</p>
+
+          <div className="bg-warm border border-sand rounded-2xl p-5 space-y-4">
+            <label className="block">
+              <span className="text-ink text-sm font-medium mb-1.5 block">Name</span>
+              <input
+                type="text"
+                value={velaName}
+                onChange={(e) => setVelaName(e.target.value)}
+                placeholder="Vela"
+                className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-ink text-sm font-medium mb-1.5 block">Persönlichkeit / Verhalten</span>
+              <textarea
+                value={systemPrompt}
+                onChange={(e) => setSystemPrompt(e.target.value)}
+                placeholder="Hilfsbereit, präzise, auf Deutsch"
+                rows={4}
+                className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors resize-none leading-relaxed"
+              />
+              <span className="text-xs text-bark mt-1 block">Beschreibe, wie Vela sprechen und handeln soll.</span>
+            </label>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={savePersonality}
+                disabled={personalitySaveStatus === 'saving'}
+                className="px-4 py-2 bg-sky text-white rounded-xl text-sm font-medium hover:bg-sky/90 transition-colors disabled:opacity-50"
+              >
+                {personalitySaveStatus === 'saving' ? 'Speichern...' : personalitySaveStatus === 'saved' ? '✓ Gespeichert' : 'Speichern'}
+              </button>
+              {personalitySaveStatus === 'error' && <span className="text-red-500 text-sm">Fehler beim Speichern</span>}
             </div>
           </div>
         </section>
