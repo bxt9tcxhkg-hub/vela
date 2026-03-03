@@ -12,7 +12,7 @@ const fastify = Fastify({
 })
 
 await fastify.register(cors, {
-  origin: ['http://localhost:5173', 'http://localhost:5174'],
+  origin: process.env.NODE_ENV === 'production' ? true : ['http://localhost:5173', 'http://localhost:5174'],
   methods: ['GET', 'POST'],
 })
 
@@ -22,14 +22,16 @@ await fastify.register(skillRoutes)
 
 // Serve UI static files in production
 if (process.env.NODE_ENV === 'production') {
-  const uiDist = join(dirname(fileURLToPath(import.meta.url)), '../../../ui/dist')
-  await fastify.register(import('@fastify/static'), {
+  const uiDist = join(dirname(fileURLToPath(import.meta.url)), '../../ui/dist')
+  const fastifyStatic = (await import('@fastify/static')).default
+  await fastify.register(fastifyStatic, {
     root: uiDist,
     prefix: '/',
-    wildcard: false
+    wildcard: false,
+    decorateReply: true,
   })
   // SPA fallback
-  fastify.get('*', async (_req, reply) => {
+  fastify.setNotFoundHandler(async (_req, reply) => {
     return reply.sendFile('index.html')
   })
 }
