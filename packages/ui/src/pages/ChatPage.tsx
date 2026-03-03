@@ -8,7 +8,7 @@ function randomId() {
   return Math.random().toString(36).slice(2)
 }
 
-const API_BASE = ''
+const API_BASE = 'http://localhost:3000'
 
 export function ChatPage() {
   const { state, dispatch } = useVelaStore()
