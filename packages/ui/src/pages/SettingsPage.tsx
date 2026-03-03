@@ -38,7 +38,7 @@ export function SettingsPage() {
   const [testError, setTestError] = useState('')
 
   useEffect(() => {
-    fetch('/api/settings')
+    fetch('http://localhost:3000/api/settings')
       .then((r) => r.json())
       .then((data: { hasAnthropicKey: boolean; model: string }) => {
         if (data.model) setActiveModel(data.model)
@@ -57,7 +57,7 @@ export function SettingsPage() {
       if (activeModel === 'claude') body.anthropicKey = apiKey
       else if (activeModel === 'gpt4o') body.openaiKey = apiKey
       body.model = activeModel
-      await fetch('/api/settings', {
+      await fetch('http://localhost:3000/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -73,7 +73,7 @@ export function SettingsPage() {
     setTestStatus('loading')
     setTestError('')
     try {
-      const res = await fetch('/api/health')
+      const res = await fetch('http://localhost:3000/api/health')
       if (res.ok) setTestStatus('success')
       else { setTestStatus('error'); setTestError(`Status ${res.status}`) }
     } catch (e) {

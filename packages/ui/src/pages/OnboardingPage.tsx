@@ -46,13 +46,13 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
       if (tab === 'claude' && claudeKey) body.anthropicKey = claudeKey
       if (tab === 'openai' && openaiKey) body.openaiKey = openaiKey
       if (Object.keys(body).length > 0) {
-        await fetch('/api/settings', {
+        await fetch('http://localhost:3000/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         })
       }
-      const res = await fetch('/api/health')
+      const res = await fetch('http://localhost:3000/api/health')
       if (res.ok) {
         setTestStatus('success')
       } else {

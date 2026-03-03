@@ -75,11 +75,11 @@ export function ChatPage() {
         throw new Error(`Server error: ${response.status}`)
       }
 
-      const data = await response.json() as { text: string }
+      const data = await response.json() as { text: string; skillUsed?: string }
       dispatch({ type: 'SET_TYPING', payload: false })
       dispatch({
         type: 'ADD_MESSAGE',
-        payload: { id: velaId, role: 'vela', content: data.text, timestamp: new Date() },
+        payload: { id: velaId, role: 'vela', content: data.text, timestamp: new Date(), skillUsed: data.skillUsed ?? undefined },
       })
     } catch (_err) {
       dispatch({ type: 'SET_TYPING', payload: false })

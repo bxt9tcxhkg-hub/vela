@@ -32,6 +32,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
         <div className="max-w-xs lg:max-w-md xl:max-w-lg bg-sky-light border border-sky/20 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
           <p className="text-ink text-sm leading-relaxed">{message.content}</p>
         </div>
+        {message.skillUsed && (
+          <span className="text-xs text-bark mt-1 ml-1 flex items-center gap-1">
+            🔍 Web-Suche verwendet
+          </span>
+        )}
         <span className="text-bark text-xs mt-1 ml-1">{formatTime(message.timestamp)}</span>
       </div>
     </div>

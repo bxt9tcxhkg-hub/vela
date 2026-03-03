@@ -5,6 +5,7 @@ export interface Message {
   role: 'user' | 'vela'
   content: string
   timestamp: Date
+  skillUsed?: string
 }
 
 export interface Activity {
