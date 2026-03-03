@@ -14,6 +14,12 @@ const ChatRequestSchema = z.object({
   model: z.string().optional(),
 })
 
+interface ActivityEntry {
+  icon: string
+  description: string
+  status: string
+}
+
 function needsWebSearch(message: string): string | null {
   const lower = message.toLowerCase()
   const patterns = [
@@ -40,21 +46,31 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
   })
 
   fastify.post('/api/chat', async (request, reply) => {
+    // Check API key
+    const apiKey = process.env.ANTHROPIC_API_KEY ?? ''
+    if (!apiKey) {
+      return reply.code(400).send({ error: 'Kein API Key konfiguriert. Bitte in den Einstellungen hinterlegen.' })
+    }
+
     const body = ChatRequestSchema.parse(request.body)
 
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' })
+    const client = new Anthropic({ apiKey })
 
     // Detect if web search is needed
     const lastUserMessage = [...body.messages].reverse().find(m => m.role === 'user')
-    const searchQuery = lastUserMessage ? needsWebSearch(lastUserMessage.content) : null
+    const userMessageText = lastUserMessage?.content ?? ''
+    const searchQuery = lastUserMessage ? needsWebSearch(userMessageText) : null
 
     let systemPrompt = 'Du bist Vela, ein persönlicher KI-Assistent. Du bist hilfsbereit, präzise und antwortest auf Deutsch. Du handelst niemals ohne Bestätigung des Nutzers bei wichtigen Aktionen.'
+
+    let skillUsed: string | null = null
 
     if (searchQuery) {
       try {
         const searchResult = await webSearchSkill.execute({ query: searchQuery })
         if (searchResult.success && searchResult.summary !== 'Keine direkte Antwort gefunden') {
           systemPrompt += `\n\nAktuelle Web-Suchergebnisse für "${searchQuery}":\n${searchResult.summary}`
+          skillUsed = 'web-search'
         }
       } catch (_err) {
         // Ignore search errors, proceed without context
@@ -73,7 +89,15 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
       .map((b) => (b as { type: 'text'; text: string }).text)
       .join('')
 
-    const responseBody = JSON.stringify({ text, skillUsed: searchQuery ? 'web-search' : null })
+    // Build activity entry
+    let activity: ActivityEntry
+    if (skillUsed === 'web-search' && searchQuery) {
+      activity = { icon: '🔍', description: 'Web-Suche: ' + searchQuery, status: 'done' }
+    } else {
+      activity = { icon: '💬', description: 'Chat: ' + userMessageText.slice(0, 40), status: 'done' }
+    }
+
+    const responseBody = JSON.stringify({ text, skillUsed, activity })
     return reply
       .code(200)
       .header('Content-Type', 'application/json; charset=utf-8')

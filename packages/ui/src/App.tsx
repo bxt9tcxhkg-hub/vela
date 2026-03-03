@@ -26,7 +26,7 @@ export default function App() {
       <BrowserRouter>
         <div className="flex h-screen overflow-hidden bg-cream">
           <Sidebar />
-          <main className="flex-1 overflow-hidden">
+          <main className="flex-1 overflow-y-auto">
             <Routes>
               <Route path="/" element={<ChatPage />} />
               <Route path="/activity" element={<ActivityPage />} />

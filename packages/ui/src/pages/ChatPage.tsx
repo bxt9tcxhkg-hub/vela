@@ -15,6 +15,7 @@ export function ChatPage() {
   const [input, setInput] = useState('')
   const [streamingId, setStreamingId] = useState<string | null>(null)
   const [streamingContent, setStreamingContent] = useState('')
+  const [lastMessage, setLastMessage] = useState<string>('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -36,17 +37,24 @@ export function ChatPage() {
     ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'
   }
 
-  async function sendMessage() {
-    const text = input.trim()
+  async function sendMessage(retryText?: string) {
+    const text = retryText ?? input.trim()
     if (!text) return
 
-    // Add user message
-    dispatch({
-      type: 'ADD_MESSAGE',
-      payload: { id: randomId(), role: 'user', content: text, timestamp: new Date() },
-    })
-    setInput('')
-    if (textareaRef.current) textareaRef.current.style.height = 'auto'
+    setLastMessage(text)
+
+    // Add user message (only if not retrying)
+    if (!retryText) {
+      dispatch({
+        type: 'ADD_MESSAGE',
+        payload: { id: randomId(), role: 'user', content: text, timestamp: new Date() },
+      })
+      setInput('')
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto'
+        textareaRef.current.focus()
+      }
+    }
 
     // Show typing indicator
     dispatch({ type: 'SET_TYPING', payload: true })
@@ -72,24 +80,44 @@ export function ChatPage() {
       })
 
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`)
+        const errData = await response.json() as { error?: string }
+        throw new Error(errData.error ?? `Server error: ${response.status}`)
       }
 
-      const data = await response.json() as { text: string; skillUsed?: string }
+      const data = await response.json() as { text: string; skillUsed?: string; activity?: { icon: string; description: string; status: string } }
       dispatch({ type: 'SET_TYPING', payload: false })
       dispatch({
         type: 'ADD_MESSAGE',
         payload: { id: velaId, role: 'vela', content: data.text, timestamp: new Date(), skillUsed: data.skillUsed ?? undefined },
       })
-    } catch (_err) {
+
+      // Dispatch activity if present
+      if (data.activity) {
+        dispatch({
+          type: 'ADD_ACTIVITY',
+          payload: {
+            id: randomId(),
+            icon: data.activity.icon,
+            description: data.activity.description,
+            timestamp: new Date().toISOString(),
+            status: data.activity.status as 'done' | 'pending' | 'cancelled',
+          },
+        })
+      }
+
+      // Focus input after receiving response
+      textareaRef.current?.focus()
+    } catch (err) {
       dispatch({ type: 'SET_TYPING', payload: false })
+      const errorMsg = err instanceof Error ? err.message : 'Unbekannter Fehler'
       dispatch({
         type: 'ADD_MESSAGE',
         payload: {
           id: velaId,
           role: 'vela',
-          content: 'Ich konnte keine Verbindung zum Server herstellen. Ist der Server gestartet?',
+          content: `⚠️ ${errorMsg}`,
           timestamp: new Date(),
+          skillUsed: '__error__',
         },
       })
     }
@@ -115,9 +143,29 @@ export function ChatPage() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6">
-        {state.messages.map((msg: Message) => (
-          <ChatMessage key={msg.id} message={msg} />
-        ))}
+        {state.messages.map((msg: Message) => {
+          if (msg.skillUsed === '__error__') {
+            return (
+              <div key={msg.id} className="flex items-start gap-3 mb-4">
+                <div className="w-8 h-8 rounded-full bg-red-100 border border-red-200 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-red-500 text-sm">!</span>
+                </div>
+                <div className="flex flex-col items-start">
+                  <div className="max-w-xs lg:max-w-md bg-red-50 border border-red-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+                    <p className="text-red-700 text-sm leading-relaxed">{msg.content}</p>
+                  </div>
+                  <button
+                    onClick={() => sendMessage(lastMessage)}
+                    className="mt-2 px-3 py-1.5 bg-sky text-white rounded-xl text-xs font-medium hover:bg-sky/90 transition-colors"
+                  >
+                    Nochmal versuchen
+                  </button>
+                </div>
+              </div>
+            )
+          }
+          return <ChatMessage key={msg.id} message={msg} />
+        })}
 
         {state.pendingConfirmation && (
           <ConfirmDialog action={state.pendingConfirmation} />
@@ -146,7 +194,7 @@ export function ChatPage() {
             className="flex-1 bg-transparent resize-none outline-none text-sm text-ink placeholder:text-bark leading-relaxed max-h-40"
           />
           <button
-            onClick={sendMessage}
+            onClick={() => sendMessage()}
             disabled={!input.trim()}
             className="w-9 h-9 rounded-xl bg-sky text-white flex items-center justify-center hover:bg-sky/90 transition-colors disabled:opacity-40 shrink-0"
           >

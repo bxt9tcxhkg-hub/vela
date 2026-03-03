@@ -1,4 +1,5 @@
 import React from 'react'
+import ReactMarkdown from 'react-markdown'
 import { Message } from '../store/useVelaStore'
 
 interface ChatMessageProps {
