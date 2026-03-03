@@ -1,5 +1,7 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
 import { config } from './config.js'
 import { chatRoutes } from './routes/chat.js'
 import { settingsRoutes } from './routes/settings.js'
@@ -17,6 +19,20 @@ await fastify.register(cors, {
 await fastify.register(chatRoutes)
 await fastify.register(settingsRoutes)
 await fastify.register(skillRoutes)
+
+// Serve UI static files in production
+if (process.env.NODE_ENV === 'production') {
+  const uiDist = join(dirname(fileURLToPath(import.meta.url)), '../../../ui/dist')
+  await fastify.register(import('@fastify/static'), {
+    root: uiDist,
+    prefix: '/',
+    wildcard: false
+  })
+  // SPA fallback
+  fastify.get('*', async (_req, reply) => {
+    return reply.sendFile('index.html')
+  })
+}
 
 try {
   await fastify.listen({ port: config.port, host: config.host })

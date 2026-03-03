@@ -7,7 +7,7 @@ export interface SkillResult {
   success: boolean
   data?: unknown
   summary: string
-  error?: string
+  error?: string | undefined
 }
 
 export interface Skill {

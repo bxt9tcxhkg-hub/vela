@@ -16,19 +16,8 @@ const models = [
   { value: 'ollama', label: 'Ollama (lokal)' },
 ]
 
-const services = [
-  { id: 'gmail', label: 'Gmail', icon: '📧', connected: true },
-  { id: 'calendar', label: 'Kalender', icon: '📅', connected: true },
-  { id: 'slack', label: 'Slack', icon: '💬', connected: false },
-]
-
 export function SettingsPage() {
   const { state, dispatch } = useVelaStore()
-  const [connectedServices, setConnectedServices] = useState<Record<string, boolean>>({
-    gmail: true,
-    calendar: true,
-    slack: false,
-  })
 
   // KI-Verbindung state
   const [activeModel, setActiveModel] = useState('claude')
@@ -42,20 +31,25 @@ export function SettingsPage() {
   const [systemPrompt, setSystemPrompt] = useState('Hilfsbereit, präzise, auf Deutsch')
   const [personalitySaveStatus, setPersonalitySaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
+  // Gmail state
+  const [hasGmailConfig, setHasGmailConfig] = useState(false)
+  const [gmailModalOpen, setGmailModalOpen] = useState(false)
+  const [gmailClientId, setGmailClientId] = useState('')
+  const [gmailClientSecret, setGmailClientSecret] = useState('')
+  const [gmailRefreshToken, setGmailRefreshToken] = useState('')
+  const [gmailSaveStatus, setGmailSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+
   useEffect(() => {
     fetch('http://localhost:3000/api/settings')
       .then((r) => r.json())
-      .then((data: { hasAnthropicKey: boolean; model: string; velaName?: string; systemPrompt?: string }) => {
+      .then((data: { hasAnthropicKey: boolean; model: string; velaName?: string; systemPrompt?: string; hasGmailConfig?: boolean }) => {
         if (data.model) setActiveModel(data.model)
         if (data.velaName) setVelaName(data.velaName)
         if (data.systemPrompt) setSystemPrompt(data.systemPrompt)
+        setHasGmailConfig(data.hasGmailConfig ?? false)
       })
       .catch(() => {})
   }, [])
-
-  function connectService(id: string) {
-    setConnectedServices((prev) => ({ ...prev, [id]: true }))
-  }
 
   async function saveApiKey() {
     setSaveStatus('saving')
@@ -104,6 +98,29 @@ export function SettingsPage() {
     }
   }
 
+  async function saveGmailConfig() {
+    setGmailSaveStatus('saving')
+    try {
+      await fetch('http://localhost:3000/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          googleClientId: gmailClientId.trim(),
+          googleClientSecret: gmailClientSecret.trim(),
+          googleRefreshToken: gmailRefreshToken.trim(),
+        }),
+      })
+      setGmailSaveStatus('saved')
+      setHasGmailConfig(true)
+      setTimeout(() => {
+        setGmailSaveStatus('idle')
+        setGmailModalOpen(false)
+      }, 1500)
+    } catch {
+      setGmailSaveStatus('error')
+    }
+  }
+
   return (
     <div className="flex-1 bg-cream min-h-screen">
       <header className="px-6 py-8 border-b border-sand bg-warm">
@@ -113,7 +130,7 @@ export function SettingsPage() {
 
       <div className="px-4 md:px-8 py-8 max-w-xl space-y-10">
 
-        {/* KI-Verbindung – TOP */}
+        {/* KI-Verbindung */}
         <section>
           <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">KI-Verbindung</h2>
           <p className="text-earth text-sm mb-4">Verbinde Vela mit deinem KI-Anbieter.</p>
@@ -260,35 +277,104 @@ export function SettingsPage() {
           <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">Verbundene Dienste</h2>
           <p className="text-earth text-sm mb-4">Welche Apps kann Vela verwenden?</p>
           <div className="space-y-3">
-            {services.map((svc) => (
-              <div
-                key={svc.id}
-                className="flex items-center gap-4 bg-warm border border-sand rounded-2xl px-5 py-4"
-              >
-                <span className="text-2xl">{svc.icon}</span>
-                <div className="flex-1">
-                  <p className="text-ink text-sm font-medium">{svc.label}</p>
-                  <p className="text-xs text-earth mt-0.5">
-                    {connectedServices[svc.id] ? 'Verbunden' : 'Nicht verbunden'}
-                  </p>
-                </div>
-                {connectedServices[svc.id] ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                    &#10003; Aktiv
-                  </span>
-                ) : (
-                  <button
-                    onClick={() => connectService(svc.id)}
-                    className="px-4 py-1.5 rounded-xl bg-sky text-white text-xs font-medium hover:bg-sky/90 transition-colors"
-                  >
-                    Verbinden
-                  </button>
-                )}
+            {/* Gmail */}
+            <div className="flex items-center gap-4 bg-warm border border-sand rounded-2xl px-5 py-4">
+              <span className="text-2xl">📧</span>
+              <div className="flex-1">
+                <p className="text-ink text-sm font-medium">Gmail</p>
+                <p className="text-xs text-earth mt-0.5">
+                  {hasGmailConfig ? '✅ Verbunden' : '❌ Nicht verbunden'}
+                </p>
               </div>
-            ))}
+              <button
+                onClick={() => setGmailModalOpen(true)}
+                className={`px-4 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+                  hasGmailConfig
+                    ? 'bg-cream border border-sand text-earth hover:border-bark'
+                    : 'bg-sky text-white hover:bg-sky/90'
+                }`}
+              >
+                {hasGmailConfig ? 'Neu verbinden' : 'Gmail verbinden'}
+              </button>
+            </div>
           </div>
         </section>
+
       </div>
+
+      {/* Gmail OAuth Modal */}
+      {gmailModalOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-cream border border-sand rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-fraunces font-semibold text-lg text-ink">Gmail verbinden</h3>
+              <button
+                onClick={() => setGmailModalOpen(false)}
+                className="text-earth hover:text-ink transition-colors text-xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="bg-warm border border-sand rounded-xl p-4 text-sm text-earth space-y-1">
+              <p className="font-medium text-ink mb-2">Anleitung:</p>
+              <p>1. Google Cloud Console öffnen</p>
+              <p>2. OAuth Client erstellen</p>
+              <p>3. Refresh Token generieren</p>
+            </div>
+
+            <label className="block">
+              <span className="text-ink text-sm font-medium mb-1.5 block">Client ID</span>
+              <input
+                type="text"
+                value={gmailClientId}
+                onChange={(e) => setGmailClientId(e.target.value)}
+                placeholder="123456789-abc.apps.googleusercontent.com"
+                className="w-full bg-warm border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-ink text-sm font-medium mb-1.5 block">Client Secret</span>
+              <input
+                type="password"
+                value={gmailClientSecret}
+                onChange={(e) => setGmailClientSecret(e.target.value)}
+                placeholder="GOCSPX-..."
+                className="w-full bg-warm border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-ink text-sm font-medium mb-1.5 block">Refresh Token</span>
+              <input
+                type="password"
+                value={gmailRefreshToken}
+                onChange={(e) => setGmailRefreshToken(e.target.value)}
+                placeholder="1//0g..."
+                className="w-full bg-warm border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+              />
+            </label>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={saveGmailConfig}
+                disabled={gmailSaveStatus === 'saving' || !gmailClientId || !gmailClientSecret || !gmailRefreshToken}
+                className="px-5 py-2 bg-sky text-white rounded-xl text-sm font-medium hover:bg-sky/90 transition-colors disabled:opacity-50"
+              >
+                {gmailSaveStatus === 'saving' ? 'Speichern...' : gmailSaveStatus === 'saved' ? '✓ Gespeichert' : 'Speichern'}
+              </button>
+              <button
+                onClick={() => setGmailModalOpen(false)}
+                className="px-5 py-2 bg-warm border border-sand rounded-xl text-ink text-sm font-medium hover:border-bark transition-colors"
+              >
+                Abbrechen
+              </button>
+              {gmailSaveStatus === 'error' && <span className="text-red-500 text-sm">Fehler beim Speichern</span>}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

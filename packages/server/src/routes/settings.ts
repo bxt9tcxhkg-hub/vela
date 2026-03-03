@@ -25,6 +25,9 @@ interface SettingsBody {
   model?: string
   systemPrompt?: string
   velaName?: string
+  googleClientId?: string
+  googleClientSecret?: string
+  googleRefreshToken?: string
 }
 
 export async function settingsRoutes(fastify: FastifyInstance) {
@@ -34,6 +37,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
       model: process.env.DEFAULT_MODEL ?? 'claude-haiku-4-5-20251001',
       velaName: process.env.VELA_NAME ?? 'Vela',
       systemPrompt: process.env.VELA_SYSTEM_PROMPT ?? '',
+      hasGmailConfig: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_REFRESH_TOKEN),
     })
     return reply
       .header('Content-Type', 'application/json')
@@ -43,7 +47,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post<{ Body: SettingsBody }>('/api/settings', async (req, reply) => {
-    const { anthropicKey, model, systemPrompt, velaName } = req.body ?? {}
+    const { anthropicKey, model, systemPrompt, velaName, googleClientId, googleClientSecret, googleRefreshToken } = req.body ?? {}
 
     if (anthropicKey?.trim()) {
       writeEnvKey('ANTHROPIC_API_KEY', anthropicKey.trim())
@@ -56,6 +60,15 @@ export async function settingsRoutes(fastify: FastifyInstance) {
     }
     if (velaName?.trim()) {
       writeEnvKey('VELA_NAME', velaName.trim())
+    }
+    if (googleClientId?.trim()) {
+      writeEnvKey('GOOGLE_CLIENT_ID', googleClientId.trim())
+    }
+    if (googleClientSecret?.trim()) {
+      writeEnvKey('GOOGLE_CLIENT_SECRET', googleClientSecret.trim())
+    }
+    if (googleRefreshToken?.trim()) {
+      writeEnvKey('GOOGLE_REFRESH_TOKEN', googleRefreshToken.trim())
     }
 
     const body = JSON.stringify({ ok: true })
