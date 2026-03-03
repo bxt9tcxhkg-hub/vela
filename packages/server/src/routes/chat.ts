@@ -26,10 +26,10 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post('/api/chat', async (request, reply) => {
     const body = ChatRequestSchema.parse(request.body)
 
-    const client = new Anthropic({ apiKey: config.anthropicApiKey })
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' })
 
     const response = await client.messages.create({
-      model: config.defaultModel,
+      model: process.env.DEFAULT_MODEL ?? 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
       system: 'Du bist Vela, ein persönlicher KI-Assistent. Du bist hilfsbereit, präzise und antwortest auf Deutsch. Du handelst niemals ohne Bestätigung des Nutzers bei wichtigen Aktionen.',
       messages: body.messages,
