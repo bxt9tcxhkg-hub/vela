@@ -5,7 +5,7 @@ export interface Message {
   role: 'user' | 'vela'
   content: string
   timestamp: Date
-  skillUsed?: string
+  skillUsed?: string | undefined
 }
 
 export interface Activity {
@@ -41,6 +41,7 @@ type Action =
   | { type: 'SET_MODEL'; payload: string }
   | { type: 'SET_CONFIRMATION'; payload: ConfirmAction | null }
   | { type: 'ADD_ACTIVITY'; payload: Activity }
+  | { type: 'CLEAR_MESSAGES' }
 
 const initialActivities: Activity[] = []
 
@@ -76,6 +77,8 @@ function reducer(state: VelaState, action: Action): VelaState {
       return { ...state, pendingConfirmation: action.payload }
     case 'ADD_ACTIVITY':
       return { ...state, activities: [action.payload, ...state.activities] }
+    case 'CLEAR_MESSAGES':
+      return { ...state, messages: [] }
     default:
       return state
   }

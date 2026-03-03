@@ -23,6 +23,8 @@ interface SettingsBody {
   anthropicKey?: string
   openaiKey?: string
   model?: string
+  systemPrompt?: string
+  velaName?: string
 }
 
 export async function settingsRoutes(fastify: FastifyInstance) {
@@ -30,6 +32,8 @@ export async function settingsRoutes(fastify: FastifyInstance) {
     const body = JSON.stringify({
       hasAnthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
       model: process.env.DEFAULT_MODEL ?? 'claude-haiku-4-5-20251001',
+      velaName: process.env.VELA_NAME ?? 'Vela',
+      systemPrompt: process.env.VELA_SYSTEM_PROMPT ?? '',
     })
     return reply
       .header('Content-Type', 'application/json')
@@ -39,13 +43,19 @@ export async function settingsRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post<{ Body: SettingsBody }>('/api/settings', async (req, reply) => {
-    const { anthropicKey, model } = req.body ?? {}
+    const { anthropicKey, model, systemPrompt, velaName } = req.body ?? {}
 
     if (anthropicKey?.trim()) {
       writeEnvKey('ANTHROPIC_API_KEY', anthropicKey.trim())
     }
     if (model?.trim()) {
       writeEnvKey('DEFAULT_MODEL', model.trim())
+    }
+    if (systemPrompt !== undefined && systemPrompt.trim()) {
+      writeEnvKey('VELA_SYSTEM_PROMPT', systemPrompt.trim())
+    }
+    if (velaName?.trim()) {
+      writeEnvKey('VELA_NAME', velaName.trim())
     }
 
     const body = JSON.stringify({ ok: true })

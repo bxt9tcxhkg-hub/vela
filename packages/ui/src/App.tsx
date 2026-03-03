@@ -24,7 +24,7 @@ export default function App() {
   return (
     <VelaProvider>
       <BrowserRouter>
-        <div className="flex h-screen overflow-hidden bg-cream">
+        <div className="flex h-screen overflow-hidden bg-cream pb-16 md:pb-0">
           <Sidebar />
           <main className="flex-1 overflow-y-auto">
             <Routes>

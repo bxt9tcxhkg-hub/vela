@@ -36,14 +36,20 @@ export function SettingsPage() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [testError, setTestError] = useState('')
+  const [apiKeyStatus, setApiKeyStatus] = useState<'loading' | 'connected' | 'missing'>('loading')
+  const [serverModel, setServerModel] = useState<string>('')
 
   useEffect(() => {
     fetch('http://localhost:3000/api/settings')
       .then((r) => r.json())
       .then((data: { hasAnthropicKey: boolean; model: string }) => {
-        if (data.model) setActiveModel(data.model)
+        setApiKeyStatus(data.hasAnthropicKey ? 'connected' : 'missing')
+        if (data.model) {
+          setActiveModel(data.model)
+          setServerModel(data.model)
+        }
       })
-      .catch(() => {})
+      .catch(() => { setApiKeyStatus('missing') })
   }, [])
 
   function connectService(id: string) {
@@ -63,6 +69,8 @@ export function SettingsPage() {
         body: JSON.stringify(body),
       })
       setSaveStatus('saved')
+      setApiKeyStatus('connected')
+      setServerModel(activeModel)
       setTimeout(() => setSaveStatus('idle'), 2000)
     } catch {
       setSaveStatus('error')
@@ -95,6 +103,22 @@ export function SettingsPage() {
         <section>
           <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">KI-Verbindung</h2>
           <p className="text-earth text-sm mb-4">Verbinde Vela mit deinem KI-Anbieter.</p>
+
+          {/* Status Banner */}
+          <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl mb-4 text-sm font-medium ${
+            apiKeyStatus === 'loading' ? 'bg-sand/50 text-earth' :
+            apiKeyStatus === 'connected' ? 'bg-green-100 text-green-700' :
+            'bg-red-50 text-red-600'
+          }`}>
+            {apiKeyStatus === 'loading' && <span>⏳ Lade Konfiguration...</span>}
+            {apiKeyStatus === 'connected' && (
+              <>
+                <span>✅ Verbunden</span>
+                {serverModel && <span className="text-green-600/70 font-normal">· Modell: {serverModel}</span>}
+              </>
+            )}
+            {apiKeyStatus === 'missing' && <span>❌ Nicht konfiguriert – bitte API Key eingeben</span>}
+          </div>
 
           <div className="bg-warm border border-sand rounded-2xl p-5 space-y-4">
             <div className="flex items-center gap-3">

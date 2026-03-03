@@ -23,14 +23,18 @@ interface ActivityEntry {
 function needsWebSearch(message: string): string | null {
   const lower = message.toLowerCase()
   const patterns = [
-    /suche? (?:nach )?(.+)/,
-    /was ist (.+)\?/,
-    /wer ist (.+)\?/,
-    /aktuelle? (?:news|nachrichten) (?:über|zu) (.+)/,
+    /(?:suche?|such mir|find) (?:nach )?(.+)/,
+    /was (?:ist|sind|bedeutet|war) (.+?)[\?\!\.]*$/,
+    /wer (?:ist|war|sind) (.+?)[\?\!\.]*$/,
+    /wie (?:funktioniert|heißt|viel|lang|alt) (.+?)[\?\!\.]*$/,
+    /wann (?:ist|war|wurde|findet) (.+?)[\?\!\.]*$/,
+    /wo (?:ist|liegt|befindet) (.+?)[\?\!\.]*$/,
+    /aktuelle? (?:news|nachrichten|infos?) (?:über|zu|von) (.+)/,
+    /informationen? (?:über|zu|von) (.+)/,
   ]
   for (const pattern of patterns) {
     const match = lower.match(pattern)
-    if (match?.[1]) return match[1]
+    if (match?.[1] && match[1].length > 2) return match[1].trim()
   }
   return null
 }
@@ -61,15 +65,17 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
     const userMessageText = lastUserMessage?.content ?? ''
     const searchQuery = lastUserMessage ? needsWebSearch(userMessageText) : null
 
-    let systemPrompt = 'Du bist Vela, ein persönlicher KI-Assistent. Du bist hilfsbereit, präzise und antwortest auf Deutsch. Du handelst niemals ohne Bestätigung des Nutzers bei wichtigen Aktionen.'
+    const systemPrompt = process.env.VELA_SYSTEM_PROMPT ??
+      `Du bist ${process.env.VELA_NAME ?? 'Vela'}, ein persönlicher KI-Assistent. Du bist hilfsbereit, präzise und antwortest auf Deutsch. Du handelst niemals ohne Bestätigung des Nutzers bei wichtigen Aktionen.`
 
+    let activeSystemPrompt = systemPrompt
     let skillUsed: string | null = null
 
     if (searchQuery) {
       try {
         const searchResult = await webSearchSkill.execute({ query: searchQuery })
         if (searchResult.success && searchResult.summary !== 'Keine direkte Antwort gefunden') {
-          systemPrompt += `\n\nAktuelle Web-Suchergebnisse für "${searchQuery}":\n${searchResult.summary}`
+          activeSystemPrompt += `\n\nAktuelle Web-Suchergebnisse für "${searchQuery}":\n${searchResult.summary}`
           skillUsed = 'web-search'
         }
       } catch (_err) {
@@ -80,7 +86,7 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
     const response = await client.messages.create({
       model: process.env.DEFAULT_MODEL ?? 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
-      system: systemPrompt,
+      system: activeSystemPrompt,
       messages: body.messages,
     })
 

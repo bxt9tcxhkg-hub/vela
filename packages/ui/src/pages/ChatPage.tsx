@@ -37,6 +37,12 @@ export function ChatPage() {
     ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'
   }
 
+  function handleClearMessages() {
+    if (window.confirm('Gespräch zurücksetzen? Alle Nachrichten werden gelöscht.')) {
+      dispatch({ type: 'CLEAR_MESSAGES' })
+    }
+  }
+
   async function sendMessage(retryText?: string) {
     const text = retryText ?? input.trim()
     if (!text) return
@@ -88,7 +94,7 @@ export function ChatPage() {
       dispatch({ type: 'SET_TYPING', payload: false })
       dispatch({
         type: 'ADD_MESSAGE',
-        payload: { id: velaId, role: 'vela', content: data.text, timestamp: new Date(), skillUsed: data.skillUsed ?? undefined },
+        payload: { id: velaId, role: 'vela', content: data.text, timestamp: new Date(), skillUsed: data.skillUsed ?? undefined, },
       })
 
       // Dispatch activity if present
@@ -130,7 +136,7 @@ export function ChatPage() {
         <div className="w-8 h-8 rounded-full bg-sky-light flex items-center justify-center">
           <span className="text-sky font-fraunces font-semibold">&#10022;</span>
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="font-fraunces font-semibold text-ink text-lg leading-none">
             V<span className="italic text-sky">e</span>la
           </h1>
@@ -139,7 +145,23 @@ export function ChatPage() {
             <span className="text-xs text-earth">Online</span>
           </div>
         </div>
+        {state.messages.length > 0 && (
+          <button
+            onClick={handleClearMessages}
+            title="Neues Gespräch"
+            className="px-3 py-1.5 rounded-xl bg-cream border border-sand text-earth text-xs hover:border-bark hover:text-ink transition-colors"
+          >
+            🗑️ Neues Gespräch
+          </button>
+        )}
       </header>
+
+      {/* Session info */}
+      {state.messages.length > 0 && (
+        <div className="px-6 py-1.5 bg-warm border-b border-sand/50">
+          <p className="text-xs text-bark">{state.messages.length} Nachricht{state.messages.length !== 1 ? 'en' : ''} in dieser Session</p>
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6">
