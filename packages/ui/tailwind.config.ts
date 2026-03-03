@@ -19,6 +19,10 @@ export default {
         gold: '#c4922a',
         'gold-light': '#faecd0',
       },
+      fontFamily: {
+        fraunces: ['Fraunces', 'serif'],
+        epilogue: ['Epilogue', 'sans-serif'],
+      },
     },
   },
   plugins: [],

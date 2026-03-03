@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { streamClaude } from '../ai/anthropic.js'
+import Anthropic from '@anthropic-ai/sdk'
+import { config } from '../config.js'
 
 const MessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -13,28 +14,38 @@ const ChatRequestSchema = z.object({
 })
 
 export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
-  // Health check
-  fastify.get('/api/health', async () => ({ status: 'ok', version: '0.1.0' }))
+  fastify.get('/api/health', async (_req, reply) => {
+    const body = JSON.stringify({ status: 'ok', version: '0.1.0' })
+    return reply
+      .code(200)
+      .header('Content-Type', 'application/json')
+      .header('Content-Length', Buffer.byteLength(body))
+      .send(body)
+  })
 
-  // Streaming chat endpoint (Server-Sent Events)
   fastify.post('/api/chat', async (request, reply) => {
     const body = ChatRequestSchema.parse(request.body)
 
-    reply.raw.setHeader('Content-Type', 'text/event-stream')
-    reply.raw.setHeader('Cache-Control', 'no-cache')
-    reply.raw.setHeader('Connection', 'keep-alive')
-    reply.raw.flushHeaders()
+    const client = new Anthropic({ apiKey: config.anthropicApiKey })
 
-    try {
-      for await (const chunk of streamClaude(body.messages)) {
-        reply.raw.write(`data: ${JSON.stringify({ text: chunk })}\n\n`)
-      }
-      reply.raw.write('data: [DONE]\n\n')
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error'
-      reply.raw.write(`data: ${JSON.stringify({ error: message })}\n\n`)
-    } finally {
-      reply.raw.end()
-    }
+    const response = await client.messages.create({
+      model: config.defaultModel,
+      max_tokens: 1024,
+      system: 'Du bist Vela, ein persönlicher KI-Assistent. Du bist hilfsbereit, präzise und antwortest auf Deutsch. Du handelst niemals ohne Bestätigung des Nutzers bei wichtigen Aktionen.',
+      messages: body.messages,
+    })
+
+    const text = response.content
+      .filter((b) => b.type === 'text')
+      .map((b) => (b as { type: 'text'; text: string }).text)
+      .join('')
+
+    const responseBody = JSON.stringify({ text })
+    return reply
+      .code(200)
+      .header('Content-Type', 'application/json; charset=utf-8')
+      .header('Content-Length', Buffer.byteLength(responseBody))
+      .header('Transfer-Encoding', '')
+      .send(responseBody)
   })
 }

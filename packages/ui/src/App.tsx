@@ -1,12 +1,26 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { VelaProvider } from './store/useVelaStore'
 import { Sidebar } from './components/Sidebar'
 import { ChatPage } from './pages/ChatPage'
 import { ActivityPage } from './pages/ActivityPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { OnboardingPage } from './pages/OnboardingPage'
 
 export default function App() {
+  const [onboarded, setOnboarded] = useState<boolean>(
+    () => localStorage.getItem('vela_onboarded') === 'true'
+  )
+
+  function completeOnboarding() {
+    localStorage.setItem('vela_onboarded', 'true')
+    setOnboarded(true)
+  }
+
+  if (!onboarded) {
+    return <OnboardingPage onComplete={completeOnboarding} />
+  }
+
   return (
     <VelaProvider>
       <BrowserRouter>

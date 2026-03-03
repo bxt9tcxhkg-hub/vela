@@ -18,37 +18,6 @@ export function ChatPage() {
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Show demo confirm dialog on mount if no pending confirmation
-  useEffect(() => {
-    if (!state.pendingConfirmation) {
-      const confirm: ConfirmAction = {
-        id: 'demo-confirm',
-        description: 'Vela moechte 23 E-Mails archivieren',
-        risk: 'medium',
-        onConfirm: () => {
-          dispatch({ type: 'SET_CONFIRMATION', payload: null })
-          dispatch({
-            type: 'ADD_MESSAGE',
-            payload: { id: randomId(), role: 'vela', content: 'Erledigt! Ich habe 23 Spam-Mails archiviert.', timestamp: new Date() },
-          })
-          dispatch({
-            type: 'ADD_ACTIVITY',
-            payload: { id: randomId(), icon: 'trash', description: '23 Spam-Mails archiviert', timestamp: 'gerade eben', status: 'done' },
-          })
-        },
-        onCancel: () => {
-          dispatch({ type: 'SET_CONFIRMATION', payload: null })
-          dispatch({
-            type: 'ADD_MESSAGE',
-            payload: { id: randomId(), role: 'vela', content: 'Verstanden, ich lasse die E-Mails unberührt.', timestamp: new Date() },
-          })
-        },
-      }
-      dispatch({ type: 'SET_CONFIRMATION', payload: confirm })
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [state.messages, state.isTyping])
@@ -102,52 +71,15 @@ export function ChatPage() {
         body: JSON.stringify({ messages: apiMessages }),
       })
 
-      if (!response.ok || !response.body) {
+      if (!response.ok) {
         throw new Error(`Server error: ${response.status}`)
       }
 
+      const data = await response.json() as { text: string }
       dispatch({ type: 'SET_TYPING', payload: false })
-
-      // Set streaming state – renders live in UI
-      setStreamingId(velaId)
-      setStreamingContent('')
-
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-      let fullText = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() ?? ''
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          const raw = line.slice(6).trim()
-          if (raw === '[DONE]') break
-          try {
-            const parsed = JSON.parse(raw) as { text?: string; error?: string }
-            if (parsed.error) throw new Error(parsed.error)
-            if (parsed.text) {
-              fullText += parsed.text
-              setStreamingContent(fullText)
-            }
-          } catch {
-            // skip malformed lines
-          }
-        }
-      }
-
-      // Commit final streamed message to store
-      setStreamingId(null)
-      setStreamingContent('')
       dispatch({
         type: 'ADD_MESSAGE',
-        payload: { id: velaId, role: 'vela', content: fullText, timestamp: new Date() },
+        payload: { id: velaId, role: 'vela', content: data.text, timestamp: new Date() },
       })
     } catch (_err) {
       dispatch({ type: 'SET_TYPING', payload: false })

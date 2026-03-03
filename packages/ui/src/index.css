@@ -1,20 +1,66 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400;1,9..144,600&family=Epilogue:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Epilogue:wght@300;400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --cream: #faf7f2;
+  --warm: #f2ece0;
+  --sand: #e8dcc8;
+  --bark: #c4a882;
+  --earth: #8b6f4e;
+  --deep: #2d2218;
+  --ink: #1a150e;
+  --sky: #5b8fa8;
+  --sky-light: #d4e8f0;
+  --moss: #6b8c5a;
+  --moss-light: #daebd2;
+  --gold: #c4922a;
+  --gold-light: #faecd0;
+}
+
 @layer base {
   html, body {
     font-family: 'Epilogue', sans-serif;
-    background-color: #faf7f2;
-    color: #1a150e;
+    background-color: var(--cream);
+    color: var(--ink);
+  }
+
+  * {
+    transition-property: color, background-color, border-color, box-shadow;
+    transition-duration: 150ms;
+    transition-timing-function: ease;
+  }
+
+  /* Scrollbar styles */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--cream);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--sand);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--bark);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--sand) var(--cream);
   }
 }
 
 @layer utilities {
   .font-fraunces {
     font-family: 'Fraunces', serif;
+    font-optical-sizing: auto;
+  }
+  .font-epilogue {
+    font-family: 'Epilogue', sans-serif;
   }
 }
 
@@ -35,4 +81,12 @@
 }
 .pulse-green {
   animation: pulse-green 2s infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.4s ease forwards;
 }

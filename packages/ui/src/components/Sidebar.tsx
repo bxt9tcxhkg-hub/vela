@@ -13,12 +13,12 @@ export function Sidebar() {
       {/* Logo */}
       <div className="px-6 pt-8 pb-6">
         <div className="flex items-center gap-2">
-          <span className="text-2xl font-fraunces font-semibold text-ink">
+          <span className="text-2xl font-fraunces font-semibold text-ink tracking-tight">
             V<span className="italic text-sky">e</span>la
           </span>
           <span className="pulse-green w-2 h-2 rounded-full bg-moss inline-block"></span>
         </div>
-        <p className="text-xs text-earth mt-1">Dein persönlicher Assistent</p>
+        <p className="text-xs text-earth mt-1 font-epilogue">Dein persönlicher Assistent</p>
       </div>
 
       {/* Nav */}
@@ -29,10 +29,10 @@ export function Sidebar() {
             to={item.to}
             end={item.to === '/'}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl mb-1 text-sm font-medium transition-colors ${
+              `flex items-center gap-3 px-4 py-3 rounded-xl mb-1 text-sm font-medium transition-all duration-150 ${
                 isActive
-                  ? 'bg-sand text-ink'
-                  : 'text-earth hover:bg-sand/50 hover:text-ink'
+                  ? 'bg-sky-light text-sky shadow-sm'
+                  : 'text-earth hover:bg-sand/60 hover:text-ink'
               }`
             }
           >

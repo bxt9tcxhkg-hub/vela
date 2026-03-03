@@ -41,16 +41,9 @@ type Action =
   | { type: 'SET_CONFIRMATION'; payload: ConfirmAction | null }
   | { type: 'ADD_ACTIVITY'; payload: Activity }
 
-const initialActivities: Activity[] = [
-  { id: 'a1', icon: 'trash', description: '23 Spam-Mails archiviert', timestamp: 'vor 2 Min', status: 'done' },
-  { id: 'a2', icon: 'calendar', description: 'Kalender-Termin verschoben: Meeting mit Tim', timestamp: 'vor 1 Std', status: 'done' },
-  { id: 'a3', icon: 'mail', description: 'E-Mail an chef@firma.de senden', timestamp: 'vor 3 Std', status: 'pending' },
-]
+const initialActivities: Activity[] = []
 
-const initialMessages: Message[] = [
-  { id: 'm1', role: 'user', content: 'Räum meinen Posteingang auf und lösch den Spam.', timestamp: new Date() },
-  { id: 'm2', role: 'vela', content: 'Ich habe 23 Spam-Mails gefunden. Soll ich diese archivieren?', timestamp: new Date() },
-]
+const initialMessages: Message[] = []
 
 const initialState: VelaState = {
   messages: initialMessages,
