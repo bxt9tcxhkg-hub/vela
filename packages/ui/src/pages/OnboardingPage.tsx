@@ -84,7 +84,7 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
 
     void (async () => {
       await velaSay('Hallo! Ich bin Vela — dein persönlicher KI-Assistent. 👋')
-      await velaSay('Ich helfe dir bei E-Mails, Recherche, Dateien und Automationen.')
+      await velaSay('Ich kann viel mehr als nur Chat: Ich passe mich deinem Stil an, nutze Tools, arbeite mit Dateien/Bildern und übernehme — je nach Modus — auch komplexe Agenten-Workflows.')
       await velaSay('Keine Sorge: Wir richten alles jetzt Schritt für Schritt gemeinsam ein.')
       await velaSay('Wie heißt du? Ich würde dich gerne persönlich ansprechen.', undefined, true)
     })()
