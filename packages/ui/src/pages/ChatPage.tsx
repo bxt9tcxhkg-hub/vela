@@ -10,7 +10,7 @@ function randomId() {
   return Math.random().toString(36).slice(2)
 }
 
-const API_BASE = 'http://localhost:3000'
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin
 
 export function ChatPage() {
   const { state, dispatch } = useVelaStore()
@@ -101,11 +101,11 @@ export function ChatPage() {
   // Poll notifications
   React.useEffect(() => {
     const poll = () => {
-      fetch('http://localhost:3000/api/preferences/suggestions')
+      fetch(`${API_BASE}/api/preferences/suggestions`)
         .then(r => r.json() as Promise<{suggestions: typeof suggestions}>)
         .then(d => setSuggestions(d.suggestions))
         .catch(() => {})
-      fetch('http://localhost:3000/api/notifications')
+      fetch(`${API_BASE}/api/notifications`)
         .then(r => r.json() as Promise<{notifications: typeof notifications; unread: number}>)
         .then(d => { setNotifications(d.notifications); setUnreadCount(d.unread) })
         .catch(() => {})
@@ -117,7 +117,7 @@ export function ChatPage() {
 
   // Load templates
   React.useEffect(() => {
-    fetch('http://localhost:3000/api/templates')
+    fetch(`${API_BASE}/api/templates`)
       .then(r => r.json() as Promise<{templates: typeof templates}>)
       .then(d => setTemplates(d.templates))
       .catch(() => {})
@@ -147,12 +147,12 @@ export function ChatPage() {
   }
 
   async function confirmSuggestion(id: string) {
-    await fetch(`http://localhost:3000/api/preferences/suggestions/${id}/confirm`, { method: 'POST' })
+    await fetch(`${API_BASE}/api/preferences/suggestions/${id}/confirm`, { method: 'POST' })
     setSuggestions(prev => prev.filter(s => s.id !== id))
   }
 
   async function rejectSuggestion(id: string) {
-    await fetch(`http://localhost:3000/api/preferences/suggestions/${id}/reject`, { method: 'POST' })
+    await fetch(`${API_BASE}/api/preferences/suggestions/${id}/reject`, { method: 'POST' })
     setSuggestions(prev => prev.filter(s => s.id !== id))
   }
 
