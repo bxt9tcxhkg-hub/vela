@@ -78,53 +78,77 @@ export function ChatPage() {
 
     const velaId = randomId()
 
+    // Streaming placeholder
+    setStreamingId(velaId)
+    setStreamingContent('')
+
     try {
-      const response = await fetch(`${API_BASE}/api/chat`, {
+      const response = await fetch(`${API_BASE}/api/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({ messages: apiMessages, stream: true }),
       })
 
-      if (!response.ok) {
-        const errData = await response.json() as { error?: string }
-        throw new Error(errData.error ?? `Server error: ${response.status}`)
+      if (!response.ok || !response.body) {
+        throw new Error(`Server error: ${response.status}`)
       }
 
-      const data = await response.json() as { text: string; skillUsed?: string; activity?: { icon: string; description: string; status: string } }
-      dispatch({ type: 'SET_TYPING', payload: false })
-      dispatch({
-        type: 'ADD_MESSAGE',
-        payload: { id: velaId, role: 'vela', content: data.text, timestamp: new Date(), skillUsed: data.skillUsed ?? undefined, },
-      })
+      const reader  = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer    = ''
+      let fullText  = ''
 
-      // Dispatch activity if present
-      if (data.activity) {
-        dispatch({
-          type: 'ADD_ACTIVITY',
-          payload: {
-            id: randomId(),
-            icon: data.activity.icon,
-            description: data.activity.description,
-            timestamp: new Date().toISOString(),
-            status: data.activity.status as 'done' | 'pending' | 'cancelled',
-          },
-        })
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (line.startsWith('event: ')) continue
+          if (!line.startsWith('data: ')) continue
+          const raw = line.slice(6).trim()
+          try {
+            const evt = JSON.parse(raw) as {
+              text?: string; message?: string;
+              warnings?: string[]; tokenUsage?: unknown
+            }
+            if ('text' in evt && evt.text && !evt.warnings) {
+              // chunk
+              fullText += evt.text
+              setStreamingContent(prev => prev + evt.text!)
+            } else if (evt.warnings !== undefined) {
+              // done event — append warnings
+              dispatch({ type: 'SET_TYPING', payload: false })
+              let finalContent = fullText
+              if (evt.warnings?.length) {
+                finalContent += '\n\n---\n' + evt.warnings.join('\n')
+              }
+              dispatch({
+                type: 'ADD_MESSAGE',
+                payload: { id: velaId, role: 'vela', content: finalContent, timestamp: new Date() },
+              })
+              setStreamingId(null)
+              setStreamingContent('')
+            } else if (evt.message) {
+              // error event
+              throw new Error(evt.message)
+            }
+          } catch (parseErr) { /* skip */ }
+        }
       }
 
-      // Focus input after receiving response
+      // Focus input
       textareaRef.current?.focus()
     } catch (err) {
       dispatch({ type: 'SET_TYPING', payload: false })
+      setStreamingId(null)
+      setStreamingContent('')
       const errorMsg = err instanceof Error ? err.message : 'Unbekannter Fehler'
       dispatch({
         type: 'ADD_MESSAGE',
-        payload: {
-          id: velaId,
-          role: 'vela',
-          content: `⚠️ ${errorMsg}`,
-          timestamp: new Date(),
-          skillUsed: '__error__',
-        },
+        payload: { id: velaId, role: 'vela', content: `⚠️ ${errorMsg}`, timestamp: new Date(), skillUsed: '__error__' },
       })
     }
   }

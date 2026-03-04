@@ -1,28 +1,23 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { getAdapter } from '../ai/registry.js'
-import { buildSystemPrompt } from '../prompts/builder.js'
+import { buildSystemPrompt }  from '../prompts/builder.js'
+import { getAdapter }         from '../ai/registry.js'
 import { analyzeContext, getContextWarningMessage } from '../utils/context.js'
 import { loadCheckpoint, hasActiveCheckpoint, getCheckpointResumeMessage } from '../utils/checkpoint.js'
 import { checkDiskStorage, checkRamUsage, getStorageWarningMessage } from '../utils/storage-monitor.js'
-import { config } from '../config.js'
-import { webSearchSkill } from '../skills/web-search.js'
+import { webSearchSkill }     from '../skills/web-search.js'
 
 const MessageSchema = z.object({
-  role: z.enum(['user', 'assistant']),
+  role:    z.enum(['user','assistant']),
   content: z.string(),
 })
-
 const ChatRequestSchema = z.object({
   messages: z.array(MessageSchema),
-  model: z.string().optional(),
+  model:    z.string().optional(),
+  stream:   z.boolean().optional().default(false),
 })
 
-interface ActivityEntry {
-  icon: string
-  description: string
-  status: string
-}
+interface ActivityEntry { icon:string; description:string; status:string }
 
 function needsWebSearch(message: string): string | null {
   const lower = message.toLowerCase()
@@ -44,112 +39,178 @@ function needsWebSearch(message: string): string | null {
 }
 
 export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
+
+  // ── Health ──────────────────────────────────────────────────────────────────
   fastify.get('/api/health', async (_req, reply) => {
-    const adapter = getAdapter()
+    const adapter   = getAdapter()
     const available = await adapter.isAvailable().catch(() => false)
-    const body = JSON.stringify({
-      status: 'ok',
-      version: '0.1.0',
-      backend: adapter.name,
-      backendAvailable: available,
-    })
-    return reply
-      .code(200)
-      .header('Content-Type', 'application/json')
-      .header('Content-Length', Buffer.byteLength(body))
-      .send(body)
+    const body = JSON.stringify({ status:'ok', version:'0.1.0', backend: adapter.name, backendAvailable: available })
+    return reply.code(200).header('Content-Type','application/json').header('Content-Length', Buffer.byteLength(body)).send(body)
   })
 
-  fastify.post('/api/chat', async (request, reply) => {
-    const body = ChatRequestSchema.parse(request.body)
+  // ── Streaming Chat ──────────────────────────────────────────────────────────
+  fastify.post('/api/chat/stream', async (request, reply) => {
+    const body    = ChatRequestSchema.parse(request.body)
+    const adapter = getAdapter()
 
-    // Detect if web search is needed
-    const lastUserMessage = [...body.messages].reverse().find(m => m.role === 'user')
-    const userMessageText = lastUserMessage?.content ?? ''
-    const searchQuery = lastUserMessage ? needsWebSearch(userMessageText) : null
+    // System-Prompt aufbauen
+    const userLevel = process.env.VELA_PREF_LEVEL ?? 'laie'
+    const systemPrompt = buildSystemPrompt({
+      language:    process.env.VELA_PREF_LANGUAGE ?? 'Deutsch',
+      tone:        process.env.VELA_PREF_TONE ?? 'einfach',
+      purpose:     process.env.VELA_PREF_PURPOSE ?? 'alltag',
+      level:       (userLevel) as 'laie'|'poweruser'|'entwickler',
+      backendMode: (process.env.VELA_BACKEND === 'groq' ? 'groq' : process.env.VELA_BACKEND === 'gemini' ? 'cloud' : process.env.VELA_BACKEND === 'local' ? 'local' : 'cloud') as 'local'|'groq'|'cloud',
+    })
 
-    const systemPrompt = process.env.VELA_SYSTEM_PROMPT
-      ? process.env.VELA_SYSTEM_PROMPT
-      : (() => {
-          const vars: Parameters<typeof buildSystemPrompt>[0] = {
-            language: process.env.VELA_PREF_LANGUAGE ?? 'Deutsch',
-            tone: process.env.VELA_PREF_TONE ?? 'einfach',
-            purpose: process.env.VELA_PREF_PURPOSE ?? 'alltag',
-            level: (process.env.VELA_PREF_LEVEL ?? 'laie') as 'laie' | 'poweruser' | 'entwickler',
-            backendMode: (process.env.VELA_BACKEND === 'groq' ? 'groq' : process.env.VELA_BACKEND === 'cloud' ? 'cloud' : 'local') as 'local' | 'groq' | 'cloud',
-          }
-          if (process.env.VELA_PREF_NAME) vars.name = process.env.VELA_PREF_NAME
-          if (process.env.DEFAULT_MODEL) vars.backendModel = process.env.DEFAULT_MODEL
-          return buildSystemPrompt(vars)
-        })()
+    // Web-Suche
+    const lastUser  = [...body.messages].reverse().find(m => m.role === 'user')
+    const userText  = lastUser?.content ?? ''
+    const searchQ   = needsWebSearch(userText)
+    let activePrompt = systemPrompt
 
-    let activeSystemPrompt = systemPrompt
-    let skillUsed: string | null = null
-
-    if (searchQuery) {
+    if (searchQ) {
       try {
-        const searchResult = await webSearchSkill.execute({ query: searchQuery })
-        if (searchResult.success && searchResult.summary !== 'Keine direkte Antwort gefunden') {
-          activeSystemPrompt += `\n\nAktuelle Web-Suchergebnisse für "${searchQuery}":\n${searchResult.summary}`
-          skillUsed = 'web-search'
+        const sr = await webSearchSkill.execute({ query: searchQ })
+        if (sr.success && sr.summary !== 'Keine direkte Antwort gefunden') {
+          activePrompt += `\n\nAktuelle Web-Suchergebnisse für "${searchQ}":\n${sr.summary}`
         }
-      } catch (_err) {
-        // Ignore search errors, proceed without context
-      }
+      } catch { /* ignore */ }
     }
 
-    const adapter = getAdapter()
-    let text: string
+    // Checkpoint notice
+    let checkpointNotice = ''
+    if (body.messages.length === 1 && body.messages[0]?.role === 'user' && hasActiveCheckpoint()) {
+      const cp = loadCheckpoint()
+      if (cp) checkpointNotice = getCheckpointResumeMessage(cp, userLevel)
+    }
+
+    // Streaming via SSE
+    reply.raw.writeHead(200, {
+      'Content-Type':  'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection':    'keep-alive',
+      'X-Accel-Buffering': 'no',
+    })
+
+    const sendEvent = (event: string, data: unknown) => {
+      reply.raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+    }
 
     try {
-      text = await adapter.chat(body.messages, activeSystemPrompt, {
-        maxTokens: 1024,
-      })
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'Unbekannter Fehler'
-      return reply.code(500).send({ error: errMsg })
-    }
-
-    // T-07: Kontextfenster-Analyse
-    const model = process.env.DEFAULT_MODEL ?? 'default'
-    const userLevel = process.env.VELA_PREF_LEVEL ?? 'laie'
-    const ctxStats = analyzeContext(body.messages, activeSystemPrompt, model)
-    const ctxWarning = getContextWarningMessage(ctxStats, userLevel)
-
-    // T-08: Checkpoint-Check (nur bei erster Nachricht einer Session)
-    let checkpointNotice = ''
-    if (body.messages.length === 1 && body.messages[0]?.role === 'user') {
-      if (hasActiveCheckpoint()) {
-        const cp = loadCheckpoint()
-        if (cp) checkpointNotice = getCheckpointResumeMessage(cp, userLevel)
+      if (checkpointNotice) {
+        sendEvent('checkpoint', { text: checkpointNotice })
       }
+
+      if (adapter.stream) {
+        let fullText = ''
+        for await (const chunk of adapter.stream(body.messages, activePrompt, { maxTokens: 1024 })) {
+          fullText += chunk
+          sendEvent('chunk', { text: chunk })
+        }
+        // Context warning after streaming
+        const ctxStats = analyzeContext(body.messages, activePrompt, process.env.DEFAULT_MODEL ?? 'default')
+        const ctxWarn  = getContextWarningMessage(ctxStats, userLevel)
+        const disk     = checkDiskStorage(userLevel)
+        const ram      = checkRamUsage()
+        const storageWarn = getStorageWarningMessage(disk, ram, userLevel)
+
+        sendEvent('done', {
+          text: fullText,
+          contextStats: ctxStats,
+          warnings: [ctxWarn, storageWarn].filter(Boolean),
+        })
+      } else {
+        // Fallback: blockierend mit chatWithUsage
+        const result = adapter.chatWithUsage
+          ? await adapter.chatWithUsage(body.messages, activePrompt, { maxTokens: 1024 })
+          : { text: await adapter.chat(body.messages, activePrompt, { maxTokens: 1024 }) }
+
+        sendEvent('chunk', { text: result.text })
+        sendEvent('done',  { text: result.text, tokenUsage: result.tokenUsage })
+      }
+    } catch (err: unknown) {
+      sendEvent('error', { message: err instanceof Error ? err.message : 'Unbekannter Fehler' })
     }
 
-    // T-04: Speicherplatz-Warnung
-    const diskStatus = checkDiskStorage(userLevel)
-    const ramStatus  = checkRamUsage()
-    const storageWarning = getStorageWarningMessage(diskStatus, ramStatus, userLevel)
+    reply.raw.end()
+  })
 
-    // Prepend notices to text if present
+  // ── Blockierender Chat (Legacy + Token-Zählung) ────────────────────────────
+  fastify.post('/api/chat', async (request, reply) => {
+    const body    = ChatRequestSchema.parse(request.body)
+    const adapter = getAdapter()
+    const userLevel = process.env.VELA_PREF_LEVEL ?? 'laie'
+
+    const vars: Parameters<typeof buildSystemPrompt>[0] = {
+      language:    process.env.VELA_PREF_LANGUAGE ?? 'Deutsch',
+      tone:        process.env.VELA_PREF_TONE ?? 'einfach',
+      purpose:     process.env.VELA_PREF_PURPOSE ?? 'alltag',
+      level:       (userLevel) as 'laie'|'poweruser'|'entwickler',
+      backendMode: (process.env.VELA_BACKEND === 'groq' ? 'groq' : process.env.VELA_BACKEND === 'local' ? 'local' : 'cloud') as 'local'|'groq'|'cloud',
+    }
+    if (process.env.VELA_PREF_NAME)   vars.name         = process.env.VELA_PREF_NAME
+    if (process.env.DEFAULT_MODEL)    vars.backendModel  = process.env.DEFAULT_MODEL
+    const systemPrompt = process.env.VELA_SYSTEM_PROMPT ? process.env.VELA_SYSTEM_PROMPT : buildSystemPrompt(vars)
+
+    const lastUser  = [...body.messages].reverse().find(m => m.role === 'user')
+    const userText  = lastUser?.content ?? ''
+    const searchQ   = needsWebSearch(userText)
+    let activePrompt = systemPrompt
+    let skillUsed: string | null = null
+
+    if (searchQ) {
+      try {
+        const sr = await webSearchSkill.execute({ query: searchQ })
+        if (sr.success && sr.summary !== 'Keine direkte Antwort gefunden') {
+          activePrompt += `\n\nAktuelle Web-Suchergebnisse für "${searchQ}":\n${sr.summary}`
+          skillUsed = 'web-search'
+        }
+      } catch { /* ignore */ }
+    }
+
+    let text: string
+    let tokenUsage = undefined
+
+    try {
+      if (adapter.chatWithUsage) {
+        const result = await adapter.chatWithUsage(body.messages, activePrompt, { maxTokens: 1024 })
+        text       = result.text
+        tokenUsage = result.tokenUsage
+      } else {
+        text = await adapter.chat(body.messages, activePrompt, { maxTokens: 1024 })
+      }
+    } catch (err: unknown) {
+      return reply.code(500).send({ error: err instanceof Error ? err.message : 'Fehler' })
+    }
+
+    // T-07: exakte Token-Zählung (wenn verfügbar), sonst Schätzung
+    const ctxStats = analyzeContext(body.messages, activePrompt, process.env.DEFAULT_MODEL ?? 'default', tokenUsage)
+    const ctxWarn  = getContextWarningMessage(ctxStats, userLevel)
+    const disk     = checkDiskStorage(userLevel)
+    const ram      = checkRamUsage()
+    const storageWarn = getStorageWarningMessage(disk, ram, userLevel)
+
+    let checkpointNotice = ''
+    if (body.messages.length === 1 && body.messages[0]?.role === 'user' && hasActiveCheckpoint()) {
+      const cp = loadCheckpoint()
+      if (cp) checkpointNotice = getCheckpointResumeMessage(cp, userLevel)
+    }
+
     let finalText = text
     if (checkpointNotice) finalText = checkpointNotice + '\n\n' + finalText
-    if (ctxWarning) finalText = finalText + '\n\n---\n' + ctxWarning
-    if (storageWarning) finalText = finalText + '\n\n⚠️ ' + storageWarning
+    if (ctxWarn)          finalText = finalText + '\n\n---\n' + ctxWarn
+    if (storageWarn)      finalText = finalText + '\n\n⚠️ ' + storageWarn
 
-    // Build activity entry
-    let activity: ActivityEntry
-    if (skillUsed === 'web-search' && searchQuery) {
-      activity = { icon: '🔍', description: 'Web-Suche: ' + searchQuery, status: 'done' }
-    } else {
-      activity = { icon: '💬', description: 'Chat: ' + userMessageText.slice(0, 40), status: 'done' }
-    }
+    const activity: ActivityEntry = skillUsed === 'web-search' && searchQ
+      ? { icon:'🔍', description:'Web-Suche: '+searchQ, status:'done' }
+      : { icon:'💬', description:'Chat: '+userText.slice(0,40), status:'done' }
 
-    const responseBody = JSON.stringify({ text: finalText, skillUsed, activity, contextStats: ctxStats })
-    return reply
-      .code(200)
-      .header('Content-Type', 'application/json; charset=utf-8')
+    const responseBody = JSON.stringify({ text: finalText, skillUsed, activity, contextStats: ctxStats, tokenUsage })
+    return reply.code(200)
+      .header('Content-Type','application/json; charset=utf-8')
       .header('Content-Length', Buffer.byteLength(responseBody))
-      .header('Transfer-Encoding', '')
+      .header('Transfer-Encoding','')
       .send(responseBody)
   })
 }

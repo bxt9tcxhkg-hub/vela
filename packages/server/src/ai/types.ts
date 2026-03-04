@@ -1,8 +1,3 @@
-/**
- * Einheitliches Backend-Adapter Interface
- * Alle Adapter implementieren dieses Interface — egal ob Ollama, Groq oder Cloud.
- */
-
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
@@ -14,16 +9,35 @@ export interface ChatOptions {
   temperature?: number
 }
 
+export interface TokenUsage {
+  inputTokens:  number
+  outputTokens: number
+  totalTokens:  number
+}
+
+export interface ChatResult {
+  text:       string
+  tokenUsage?: TokenUsage
+}
+
 export interface BackendAdapter {
-  chat(
+  /** Blockierender Chat-Call */
+  chat(messages: ChatMessage[], systemPrompt: string, options?: ChatOptions): Promise<string>
+
+  /** Streaming-Call — yield chunks as they arrive */
+  stream?(
     messages: ChatMessage[],
     systemPrompt: string,
     options?: ChatOptions,
-  ): Promise<string>
+  ): AsyncGenerator<string>
 
-  /** Health-Check: Ist der Backend-Dienst erreichbar? */
+  /** Chat mit Token-Zählung */
+  chatWithUsage?(
+    messages: ChatMessage[],
+    systemPrompt: string,
+    options?: ChatOptions,
+  ): Promise<ChatResult>
+
   isAvailable(): Promise<boolean>
-
-  /** Name des Adapters für Logging */
   readonly name: string
 }
