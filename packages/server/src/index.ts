@@ -10,6 +10,7 @@ import { chatRoutes } from './routes/chat.js'
 import { settingsRoutes } from './routes/settings.js'
 import { skillRoutes } from './routes/skills.js'
 import { feedbackRoutes } from './routes/feedback.js'
+import { expertRoutes } from './routes/expert.js'
 import { marketplaceRoutes } from './routes/marketplace.js'
 import { oauthRoutes } from './routes/oauth.js'
 import { onboardingRoutes } from './routes/onboarding.js'
@@ -35,6 +36,7 @@ await fastify.register(onboardingRoutes)
 await fastify.register(oauthRoutes)
 await fastify.register(marketplaceRoutes)
 await fastify.register(feedbackRoutes)
+  await fastify.register(expertRoutes)
 
 // Serve UI static files in production
 if (process.env.NODE_ENV === 'production') {
