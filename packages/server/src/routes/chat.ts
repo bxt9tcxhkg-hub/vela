@@ -1,8 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import Anthropic from '@anthropic-ai/sdk'
-import { chatGroq } from '../ai/groq.js'
-import { buildSystemPrompt, type UserLevel, type BackendMode } from '../prompts/builder.js'
+import { getAdapter } from '../ai/registry.js'
+import { buildSystemPrompt } from '../prompts/builder.js'
 import { analyzeContext, getContextWarningMessage } from '../utils/context.js'
 import { loadCheckpoint, hasActiveCheckpoint, getCheckpointResumeMessage } from '../utils/checkpoint.js'
 import { checkDiskStorage, checkRamUsage, getStorageWarningMessage } from '../utils/storage-monitor.js'
@@ -46,7 +45,14 @@ function needsWebSearch(message: string): string | null {
 
 export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/api/health', async (_req, reply) => {
-    const body = JSON.stringify({ status: 'ok', version: '0.1.0' })
+    const adapter = getAdapter()
+    const available = await adapter.isAvailable().catch(() => false)
+    const body = JSON.stringify({
+      status: 'ok',
+      version: '0.1.0',
+      backend: adapter.name,
+      backendAvailable: available,
+    })
     return reply
       .code(200)
       .header('Content-Type', 'application/json')
@@ -55,15 +61,7 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
   })
 
   fastify.post('/api/chat', async (request, reply) => {
-    // Check API key
-    const apiKey = process.env.ANTHROPIC_API_KEY ?? ''
-    if (!apiKey) {
-      return reply.code(400).send({ error: 'Kein API Key konfiguriert. Bitte in den Einstellungen hinterlegen.' })
-    }
-
     const body = ChatRequestSchema.parse(request.body)
-
-    const client = new Anthropic({ apiKey })
 
     // Detect if web search is needed
     const lastUserMessage = [...body.messages].reverse().find(m => m.role === 'user')
@@ -73,12 +71,12 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
     const systemPrompt = process.env.VELA_SYSTEM_PROMPT
       ? process.env.VELA_SYSTEM_PROMPT
       : (() => {
-          const vars: import('../prompts/builder.js').PromptVars = {
+          const vars: Parameters<typeof buildSystemPrompt>[0] = {
             language: process.env.VELA_PREF_LANGUAGE ?? 'Deutsch',
             tone: process.env.VELA_PREF_TONE ?? 'einfach',
             purpose: process.env.VELA_PREF_PURPOSE ?? 'alltag',
-            level: (process.env.VELA_PREF_LEVEL ?? 'laie') as UserLevel,
-            backendMode: (process.env.VELA_BACKEND === 'groq' ? 'groq' : process.env.VELA_BACKEND === 'cloud' ? 'cloud' : 'local') as BackendMode,
+            level: (process.env.VELA_PREF_LEVEL ?? 'laie') as 'laie' | 'poweruser' | 'entwickler',
+            backendMode: (process.env.VELA_BACKEND === 'groq' ? 'groq' : process.env.VELA_BACKEND === 'cloud' ? 'cloud' : 'local') as 'local' | 'groq' | 'cloud',
           }
           if (process.env.VELA_PREF_NAME) vars.name = process.env.VELA_PREF_NAME
           if (process.env.DEFAULT_MODEL) vars.backendModel = process.env.DEFAULT_MODEL
@@ -100,22 +98,16 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
       }
     }
 
-    const activeBackend = process.env.VELA_BACKEND ?? 'anthropic'
+    const adapter = getAdapter()
     let text: string
 
-    if (activeBackend === 'groq') {
-      text = await chatGroq(body.messages, activeSystemPrompt)
-    } else {
-      const response = await client.messages.create({
-        model: process.env.DEFAULT_MODEL ?? 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
-        system: activeSystemPrompt,
-        messages: body.messages,
+    try {
+      text = await adapter.chat(body.messages, activeSystemPrompt, {
+        maxTokens: 1024,
       })
-      text = response.content
-        .filter((b) => b.type === 'text')
-        .map((b) => (b as { type: 'text'; text: string }).text)
-        .join('')
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Unbekannter Fehler'
+      return reply.code(500).send({ error: errMsg })
     }
 
     // T-07: Kontextfenster-Analyse

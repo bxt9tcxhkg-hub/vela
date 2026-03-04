@@ -1,30 +1,44 @@
+/**
+ * Anthropic Claude Backend-Adapter
+ */
+
 import Anthropic from '@anthropic-ai/sdk'
-import { config } from '../config.js'
+import type { BackendAdapter, ChatMessage, ChatOptions } from './types.js'
 
-const client = new Anthropic({ apiKey: config.anthropicApiKey })
+export class AnthropicAdapter implements BackendAdapter {
+  readonly name = 'anthropic'
 
-export interface ChatMessage {
-  role: 'user' | 'assistant'
-  content: string
-}
+  private get apiKey(): string {
+    return process.env.ANTHROPIC_API_KEY ?? ''
+  }
 
-export async function* streamClaude(
-  messages: ChatMessage[],
-  systemPrompt?: string,
-): AsyncGenerator<string> {
-  const stream = await client.messages.stream({
-    model: config.defaultModel,
-    max_tokens: 1024,
-    system: systemPrompt ?? `Du bist Vela, ein persönlicher KI-Assistent. Du bist hilfsbereit, präzise und auf Deutsch. Du handelst niemals ohne Bestätigung des Nutzers bei wichtigen Aktionen.`,
-    messages,
-  })
+  async isAvailable(): Promise<boolean> {
+    return Boolean(this.apiKey)
+  }
 
-  for await (const chunk of stream) {
-    if (
-      chunk.type === 'content_block_delta' &&
-      chunk.delta.type === 'text_delta'
-    ) {
-      yield chunk.delta.text
+  async chat(
+    messages: ChatMessage[],
+    systemPrompt: string,
+    options?: ChatOptions,
+  ): Promise<string> {
+    if (!this.apiKey) {
+      throw new Error('Kein Anthropic API Key konfiguriert. Bitte in den Einstellungen hinterlegen.')
     }
+
+    const client = new Anthropic({ apiKey: this.apiKey })
+
+    const response = await client.messages.create({
+      model:      options?.model ?? process.env.DEFAULT_MODEL ?? 'claude-haiku-4-5-20251001',
+      max_tokens: options?.maxTokens ?? 1024,
+      system:     systemPrompt,
+      messages,
+    })
+
+    return response.content
+      .filter(b => b.type === 'text')
+      .map(b => (b as { type: 'text'; text: string }).text)
+      .join('')
   }
 }
+
+export const anthropicAdapter = new AnthropicAdapter()

@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import Anthropic from '@anthropic-ai/sdk'
-import { chatGroq } from '../ai/groq.js'
+import { getAdapter } from '../ai/registry.js'
 import { detectHardware } from '../utils/hardware.js'
 import { z } from 'zod'
 
@@ -67,27 +66,16 @@ export async function onboardingRoutes(fastify: FastifyInstance): Promise<void> 
       .replace(/\{\{hardware\.recommended_backend\}\}/g, hw.recommended_backend)
       .replace('{{phase}}', body.phase)
 
-    const backend = hw.recommended_backend
+    // Beim Onboarding: empfohlenes Backend verwenden
+    const backendName = hw.recommended_backend === 'local' ? 'local' : hw.recommended_backend
+    const adapter = getAdapter(backendName)
     let text: string
 
-    if (backend === 'groq') {
-      text = await chatGroq(body.messages, filledPrompt)
-    } else {
-      const anthropicKey = process.env.ANTHROPIC_API_KEY ?? ''
-      if (!anthropicKey) {
-        return reply.code(400).send({ error: 'Kein API Key konfiguriert.' })
-      }
-      const client = new Anthropic({ apiKey: anthropicKey })
-      const response = await client.messages.create({
-        model: process.env.DEFAULT_MODEL ?? 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
-        system: filledPrompt,
-        messages: body.messages,
-      })
-      text = response.content
-        .filter((b) => b.type === 'text')
-        .map((b) => (b as { type: 'text'; text: string }).text)
-        .join('')
+    try {
+      text = await adapter.chat(body.messages, filledPrompt, { maxTokens: 1024 })
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Backend nicht verfügbar.'
+      return reply.code(500).send({ error: errMsg })
     }
 
     // Parse completion payload if present
