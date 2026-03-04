@@ -20,21 +20,21 @@ const riskLabels = {
 export function ConfirmDialog({ action }: ConfirmDialogProps) {
   return (
     <div className={`rounded-2xl border p-4 my-3 mx-auto max-w-sm ${riskColors[action.risk]}`}>
-      <p className="font-medium text-ink mb-1 text-sm">
+      <p className="font-medium text-white mb-1 text-sm">
         Vela möchte folgendes tun:
       </p>
-      <p className="text-ink text-sm mb-3">{action.description}</p>
-      <p className="text-xs text-earth mb-3">{riskLabels[action.risk]}</p>
+      <p className="text-white text-sm mb-3">{action.description}</p>
+      <p className="text-xs text-vtext2 mb-3">{riskLabels[action.risk]}</p>
       <div className="flex gap-2">
         <button
           onClick={action.onConfirm}
-          className="flex-1 py-2 rounded-xl bg-sky text-white text-sm font-medium hover:bg-sky/90 transition-colors"
+          className="flex-1 py-2 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-500 transition-colors"
         >
           Ja, ausführen
         </button>
         <button
           onClick={action.onCancel}
-          className="flex-1 py-2 rounded-xl bg-sand text-ink text-sm font-medium hover:bg-bark/30 transition-colors"
+          className="flex-1 py-2 rounded-xl bg-surface2 text-white text-sm font-medium hover:bg-surface border border-border transition-colors"
         >
           Nein, abbrechen
         </button>
