@@ -1,3 +1,5 @@
+import { MessengerWizard } from '../components/MessengerWizard.js'
+import { BackendSelector, type BackendMode } from '../components/BackendSelector.js'
 import React, { useState, useEffect } from 'react'
 import { useVelaStore } from '../store/useVelaStore'
 
@@ -20,6 +22,7 @@ export function SettingsPage() {
   const { state, dispatch } = useVelaStore()
 
   // KI-Verbindung state
+  const [backendMode, setBackendMode] = useState<BackendMode>('local')
   const [activeModel, setActiveModel] = useState('claude')
   const [apiKey, setApiKey] = useState('')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
@@ -44,12 +47,22 @@ export function SettingsPage() {
       .then((r) => r.json())
       .then((data: { hasAnthropicKey: boolean; model: string; velaName?: string; systemPrompt?: string; hasGmailConfig?: boolean }) => {
         if (data.model) setActiveModel(data.model)
+        if (data.backend) setBackendMode(data.backend as BackendMode)
         if (data.velaName) setVelaName(data.velaName)
         if (data.systemPrompt) setSystemPrompt(data.systemPrompt)
         setHasGmailConfig(data.hasGmailConfig ?? false)
       })
       .catch(() => {})
   }, [])
+
+  async function handleBackendChange(mode: BackendMode) {
+    setBackendMode(mode)
+    await fetch('http://localhost:3000/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ backend: mode }),
+    }).catch(() => {})
+  }
 
   async function saveApiKey() {
     setSaveStatus('saving')
@@ -134,6 +147,12 @@ export function SettingsPage() {
         <section>
           <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">KI-Verbindung</h2>
           <p className="text-earth text-sm mb-4">Verbinde Vela mit deinem KI-Anbieter.</p>
+
+          <BackendSelector
+            current={backendMode}
+            onChange={handleBackendChange}
+            requiresConfirmation={true}
+          />
 
           <div className="bg-warm border border-sand rounded-2xl p-5 space-y-4">
             <div className="flex items-center gap-3">
@@ -270,6 +289,13 @@ export function SettingsPage() {
               <option key={m.value} value={m.value}>{m.label}</option>
             ))}
           </select>
+        </section>
+
+        {/* Messenger */}
+        <section>
+          <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">Messenger</h2>
+          <p className="text-earth text-sm mb-4">Chatte mit Vela über Telegram oder Discord.</p>
+          <MessengerWizard />
         </section>
 
         {/* Verbundene Dienste */}
