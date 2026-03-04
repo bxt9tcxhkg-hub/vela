@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { VelaProvider, useVelaStore } from './store/useVelaStore'
-import type { OperationMode } from './store/useVelaStore'
+import type { OperationMode, AuthUser } from './store/useVelaStore'
 import { Sidebar } from './components/Sidebar'
 import { ChatPage } from './pages/ChatPage'
 import { ActivityPage } from './pages/ActivityPage'
@@ -9,11 +9,9 @@ import { PlaygroundPage } from './pages/PlaygroundPage'
 import { WorkflowsPage } from './pages/WorkflowsPage'
 import { AgentsPage } from './pages/AgentsPage'
 import { AuthPage } from './pages/AuthPage'
-import type { AuthUser } from './store/useVelaStore'
 import { SettingsPage } from './pages/SettingsPage'
 import OnboardingPage from './pages/OnboardingPage'
 import { MarketplacePage } from './pages/MarketplacePage'
-import { FeedbackButton } from './components/FeedbackButton'
 
 function AppRoutes() {
   const { state } = useVelaStore()
@@ -24,12 +22,12 @@ function AppRoutes() {
       <Sidebar showMarketplace={isExpert} />
       <main className="flex-1 overflow-y-auto">
         <Routes>
-          <Route path="/"           element={<ChatPage />} />
-          <Route path="/activity"   element={<ActivityPage />} />
+          <Route path="/" element={<ChatPage />} />
+          <Route path="/activity" element={<ActivityPage />} />
           <Route path="/agents" element={<AgentsPage />} />
-              <Route path="/workflows" element={<WorkflowsPage />} />
-              <Route path="/playground" element={<PlaygroundPage />} />
-              <Route path="/settings"   element={<SettingsPage />} />
+          <Route path="/workflows" element={<WorkflowsPage />} />
+          <Route path="/playground" element={<PlaygroundPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           {isExpert && <Route path="/marketplace" element={<MarketplacePage />} />}
         </Routes>
       </main>
@@ -37,7 +35,7 @@ function AppRoutes() {
   )
 }
 
-export default function App() {
+function AppShell() {
   const [onboarded, setOnboarded] = useState<boolean>(
     () => localStorage.getItem('vela_onboarded') === 'true'
   )
@@ -55,7 +53,6 @@ export default function App() {
     setOnboarded(true)
   }
 
-  // Auth gate — only for cloud mode
   const needsAuth = state.operationMode === 'cloud' && !state.authToken
   if (needsAuth) {
     return <AuthPage onAuth={handleAuth} />
@@ -66,10 +63,16 @@ export default function App() {
   }
 
   return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  )
+}
+
+export default function App() {
+  return (
     <VelaProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <AppShell />
     </VelaProvider>
   )
 }
