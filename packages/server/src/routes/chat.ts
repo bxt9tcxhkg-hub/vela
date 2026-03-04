@@ -8,6 +8,7 @@ import { chatOllama, isOllamaAvailable, listOllamaModels } from '../ai/ollama.js
 import { AgentPlanner } from '@vela/core'
 import { addMessage } from '../db/conversations.js'
 import { chatGemini } from '../ai/gemini.js'
+import { chatGroq, GroqRateLimitError } from '../ai/groq.js'
 
 const MessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -162,6 +163,25 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
         return reply.code(400).send({ error: 'Kein Google Gemini API-Key konfiguriert.' })
       }
       text = await chatGemini(body.messages, apiKey, undefined, systemPrompt)
+    }
+
+    // ── Groq ─────────────────────────────────────────────────────────────────
+    else if (provider === 'groq') {
+      const apiKey = process.env.GROQ_API_KEY ?? ''
+      if (!apiKey) {
+        return reply.code(400).send({ error: 'Kein Groq API-Key konfiguriert.' })
+      }
+      try {
+        text = await chatGroq(body.messages, apiKey, undefined, systemPrompt)
+      } catch (err) {
+        if (err instanceof GroqRateLimitError) {
+          return reply.code(429).send({
+            error: 'Vela macht kurz eine Pause — du hast das kostenlose Tageslimit erreicht. Morgen geht es automatisch weiter.',
+            rateLimited: true,
+          })
+        }
+        throw err
+      }
     }
 
     else {

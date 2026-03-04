@@ -269,10 +269,14 @@ function AssistantChatStep({
     setLoading(true)
     try {
       const os = navigator.platform ?? 'Unbekannt'
+      const ramGb = (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? null
       const res = await fetch('http://localhost:3000/api/onboarding/chat', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ messages: msgs, mode, trustLevel, os }),
+        body:    JSON.stringify({
+          messages: msgs, mode, trustLevel, os,
+          hardware: ramGb ? { ramGb, hasGpu: false } : undefined,
+        }),
       })
       const data = await res.json() as { text: string; complete: boolean; fallback: boolean }
       setMessages(prev => [...prev, { role: 'assistant', content: data.text }])

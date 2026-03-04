@@ -143,6 +143,7 @@ async function cmdChat(provider: string) {
     gpt:       'OPENAI_API_KEY',
     gemini:    'GEMINI_API_KEY',
     google:    'GEMINI_API_KEY',
+    groq:      'GROQ_API_KEY',
   }
   const requiredKey = KEY_MAP[provider]
   if (requiredKey && !process.env[requiredKey]) {
@@ -223,6 +224,7 @@ function printHelp() {
   println(`  ${c.cyan}vela chat --provider claude${c.reset}   Chat mit Claude (API Key erforderlich)`)
   println(`  ${c.cyan}vela chat --provider openai${c.reset}   Chat mit GPT-4o`)
   println(`  ${c.cyan}vela chat --provider gemini${c.reset}   Chat mit Google Gemini`)
+  println(`  ${c.cyan}vela chat --provider groq${c.reset}     Chat mit Groq (kostenlos, schnell)`)
   println(`  ${c.cyan}vela status${c.reset}                  System- und Verbindungsstatus`)
   println(`  ${c.cyan}vela models${c.reset}                  Installierte Ollama-Modelle auflisten`)
   println()
@@ -232,6 +234,7 @@ function printHelp() {
   println(`  ${c.yellow}ANTHROPIC_API_KEY${c.reset} Claude-API-Key (vela chat --provider claude)`)
   println(`  ${c.yellow}OPENAI_API_KEY${c.reset}    OpenAI-API-Key (vela chat --provider openai)`)
   println(`  ${c.yellow}GEMINI_API_KEY${c.reset}    Google Gemini API-Key (vela chat --provider gemini)`)
+  println(`  ${c.yellow}GROQ_API_KEY${c.reset}      Groq API-Key (kostenlos: console.groq.com)`)
   println(`  ${c.yellow}OLLAMA_BASE_URL${c.reset}   Ollama-URL (Standard: http://localhost:11434)`)
   println()
 }
