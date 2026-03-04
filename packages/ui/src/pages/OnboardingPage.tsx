@@ -2,258 +2,237 @@ import React, { useState, useEffect, useRef } from 'react'
 
 type OperationMode = 'local' | 'cloud'
 type TrustLevel    = 'cautious' | 'balanced' | 'autonomous'
+type UIMode        = 'simple' | 'expert'
+type Personality   = 'warm' | 'direct' | 'formal'
 
 interface OnboardingPageProps {
   onComplete: (mode: OperationMode, trustLevel: TrustLevel) => void
 }
 
-type MessageRole = 'vela' | 'user'
-
-interface Message {
-  role:    MessageRole
-  text:    string
-  options?: QuickReply[]
-  inputMode?: boolean   // show text input instead of chips
-}
-
-interface QuickReply {
-  label:   string
-  icon?:   string
-  value:   string
-  warning?: boolean
-}
-
-// ─── Conversation script (state machine) ────────────────────────────────────
 type Stage =
-  | 'greeting'
-  | 'mode-selected'
-  | 'cloud-confirm'
-  | 'trust'
+  | 'intro'
   | 'name'
-  | 'focus'
+  | 'personality'
+  | 'level'
+  | 'mode'
+  | 'mode-tiles'
+  | 'trust'
+  | 'trust-chips'
   | 'done'
 
+interface ChatMsg {
+  role: 'vela' | 'user'
+  text: string
+  chips?: Chip[]
+  inputMode?: boolean
+}
+
+interface Chip {
+  label: string
+  icon?: string
+  value: string
+  sub?: string
+}
+
+// ─── Personality texts ────────────────────────────────────────────────────────
+const GREET: Record<Personality, (name: string) => string> = {
+  warm:   (n) => `Schön dich kennenzulernen, ${n}! 😊 Ich freue mich, mit dir zusammenzuarbeiten.`,
+  direct: (n) => `Alles klar, ${n}. Dann lass uns die letzten Einstellungen klären.`,
+  formal: (n) => `Angenehm, ${n}. Ich werde Ihre Präferenzen nun festhalten.`,
+}
+
 export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
-  const [messages,    setMessages]    = useState<Message[]>([])
-  const [stage,       setStage]       = useState<Stage>('greeting')
+  const [msgs,        setMsgs]        = useState<ChatMsg[]>([])
+  const [stage,       setStage]       = useState<Stage>('intro')
   const [mode,        setMode]        = useState<OperationMode>('local')
-  const [trustLevel,  setTrustLevel]  = useState<TrustLevel>('balanced')
+  const [trust,       setTrust]       = useState<TrustLevel>('balanced')
+  const [uiMode,      setUiMode]      = useState<UIMode>('simple')
+  const [personality, setPersonality] = useState<Personality>('warm')
   const [userName,    setUserName]    = useState('')
-  const [inputValue,  setInputValue]  = useState('')
+  const [textVal,     setTextVal]     = useState('')
   const [showInput,   setShowInput]   = useState(false)
   const [isTyping,    setIsTyping]    = useState(false)
   const [canFinish,   setCanFinish]   = useState(false)
+  const [cloudWarn,   setCloudWarn]   = useState(false)
+  const [cloudConfirm,setCloudConfirm]= useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // Auto-scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isTyping])
+  }, [msgs, isTyping])
 
-  // Kick off conversation on mount
-  useEffect(() => {
-    void addVelaMessage(
-      'Hallo! Ich bin Vela — dein persönlicher KI-Assistent. Schön, dass du da bist! 👋\n\nErste Frage: Wie soll ich mit deinen Daten umgehen?',
-      [
-        { label: 'Lokal — bleibt auf meinem Gerät', icon: '🔒', value: 'local' },
-        { label: 'Cloud — mehr Leistung', icon: '☁️', value: 'cloud' },
-      ],
-      'greeting',
-    )
-  }, [])
-
-  // Add a Vela message with a short typing delay
-  async function addVelaMessage(text: string, options?: QuickReply[], _stage?: Stage, inputMode?: boolean) {
+  // --- helpers ---------------------------------------------------------------
+  async function velaSay(text: string, chips?: Chip[], inputMode?: boolean) {
     setIsTyping(true)
-    await new Promise(r => setTimeout(r, 600 + Math.random() * 400))
+    await new Promise(r => setTimeout(r, 700 + Math.random() * 300))
     setIsTyping(false)
-    setMessages(prev => [...prev, { role: 'vela', text, options, inputMode }])
+    setMsgs(prev => [...prev, { role: 'vela', text, chips, inputMode }])
     if (inputMode) setShowInput(true)
   }
 
-  function addUserMessage(text: string) {
-    setMessages(prev => [...prev, { role: 'user', text }])
+  function userSay(text: string) {
+    // disable all remaining chips
+    setMsgs(prev => prev.map(m => ({ ...m, chips: undefined })))
+    setMsgs(prev => [...prev, { role: 'user', text }])
   }
 
-  // ─── Quick reply handler ─────────────────────────────────────────────────
-  async function handleReply(value: string, label: string, currentStage: Stage) {
-    // Disable all chips after selection
-    setMessages(prev => prev.map(m =>
-      m.options ? { ...m, options: undefined } : m
-    ))
-
-    addUserMessage(label)
-
-    if (currentStage === 'greeting') {
-      const selectedMode = value as OperationMode
-      setMode(selectedMode)
-      if (selectedMode === 'cloud') {
-        setStage('cloud-confirm')
-        await addVelaMessage(
-          'Alles klar. Kurzer Hinweis: Im Cloud-Modus werden deine Anfragen an externe Anbieter wie Anthropic oder OpenAI gesendet. Deine Nachrichten verlassen dabei dein Gerät.\n\nBin ich damit einverstanden?',
-          [
-            { label: 'Ja, ich bin damit einverstanden', icon: '✓', value: 'confirm' },
-            { label: 'Lieber doch Lokal', icon: '🔒', value: 'back', warning: true },
-          ],
-          'cloud-confirm',
-        )
-      } else {
-        setStage('trust')
-        await addVelaMessage(
-          'Gute Wahl — alles bleibt bei dir. 🔒\n\nWie viel Eigeninitiative soll ich haben?',
-          [
-            { label: 'Vorsichtig — immer fragen', icon: '🛡️', value: 'cautious' },
-            { label: 'Ausgewogen — bei wichtigem fragen', icon: '⚖️', value: 'balanced' },
-            { label: 'Autonom — selbst entscheiden', icon: '🚀', value: 'autonomous' },
-          ],
-          'trust',
-        )
-      }
-    }
-
-    else if (currentStage === 'cloud-confirm') {
-      if (value === 'back') {
-        setMode('local')
-        setStage('trust')
-        await addVelaMessage(
-          'Kein Problem, Lokal ist auch super. 🔒\n\nWie viel Eigeninitiative soll ich haben?',
-          [
-            { label: 'Vorsichtig — immer fragen', icon: '🛡️', value: 'cautious' },
-            { label: 'Ausgewogen — bei wichtigem fragen', icon: '⚖️', value: 'balanced' },
-            { label: 'Autonom — selbst entscheiden', icon: '🚀', value: 'autonomous' },
-          ],
-          'trust',
-        )
-      } else {
-        setStage('trust')
-        await addVelaMessage(
-          'Danke für das Vertrauen. ☁️\n\nWie viel Eigeninitiative soll ich haben?',
-          [
-            { label: 'Vorsichtig — immer fragen', icon: '🛡️', value: 'cautious' },
-            { label: 'Ausgewogen — bei wichtigem fragen', icon: '⚖️', value: 'balanced' },
-            { label: 'Autonom — selbst entscheiden', icon: '🚀', value: 'autonomous' },
-          ],
-          'trust',
-        )
-      }
-    }
-
-    else if (currentStage === 'trust') {
-      const trust = value as TrustLevel
-      setTrustLevel(trust)
-      const trustLabels = {
-        cautious:   'Vorsichtig — ich frage bei jeder Aktion nach. Sicher, aber etwas langsamer.',
-        balanced:   'Ausgewogen — ich entscheide selbst bei einfachen Dingen, frage bei wichtigem nach.',
-        autonomous: 'Autonom — ich handle selbstständig. Du bekommst im Nachhinein eine Zusammenfassung.',
-      }
-      setStage('name')
-      await addVelaMessage(
-        `${trustLabels[trust]}\n\nWie heißt du? Dann kann ich dich persönlich ansprechen.`,
-        undefined,
-        'name',
-        true, // show text input
+  // --- boot ------------------------------------------------------------------
+  useEffect(() => {
+    void (async () => {
+      await velaSay(
+        'Hallo! Ich bin Vela — dein persönlicher KI-Assistent. 👋\n\nIch kann dir helfen mit:\n📧 E-Mails lesen & schreiben\n🔍 Web-Recherche & Zusammenfassungen\n📁 Dateien verwalten\n💬 Fragen beantworten & Texte verfassen\n🔄 Aufgaben automatisch erledigen — mit deiner Erlaubnis\n\nUnd das ist erst der Anfang. Je nachdem wie du mich einsetzt, kann ich noch viel mehr.',
       )
-    }
-  }
+      await velaSay('Wie heißt du? Ich würde dich gerne persönlich ansprechen.', undefined, true)
+    })()
+  }, [])
 
-  // ─── Text input handler (name, focus) ───────────────────────────────────
-  async function handleTextSubmit() {
-    const val = inputValue.trim()
+  // --- name submit -----------------------------------------------------------
+  async function submitName() {
+    const val = textVal.trim()
     if (!val) return
+    const name = val.charAt(0).toUpperCase() + val.slice(1)
+    setUserName(name)
     setShowInput(false)
-    setInputValue('')
+    setTextVal('')
+    userSay(name)
+    setStage('personality')
+    await velaSay(
+      `Schön, ${name}! Eine kurze Frage noch: Wie soll ich mit dir kommunizieren?`,
+      [
+        { label: 'Warm & persönlich',  icon: '😊', value: 'warm',   sub: 'Locker, empathisch, mit Emoji' },
+        { label: 'Direkt & präzise',   icon: '⚡', value: 'direct', sub: 'Auf den Punkt, kein Schnörkel' },
+        { label: 'Förmlich & sachlich',icon: '🎩', value: 'formal', sub: 'Professionell, distanziert' },
+      ],
+    )
+  }
 
-    if (stage === 'name') {
-      const name = val.charAt(0).toUpperCase() + val.slice(1)
-      setUserName(name)
-      addUserMessage(name)
-      setStage('focus')
-      await addVelaMessage(
-        `Schön dich kennenzulernen, ${name}! 😊\n\nWobei kann ich dir am meisten helfen?`,
+  // --- chip handler ----------------------------------------------------------
+  async function onChip(value: string, label: string) {
+    userSay(label)
+
+    if (stage === 'personality') {
+      const p = value as Personality
+      setPersonality(p)
+      setStage('level')
+      await velaSay(
+        GREET[p](userName) + '\n\nNoch eine wichtige Frage: Wie möchtest du Vela nutzen?',
         [
-          { label: 'E-Mails & Kommunikation', icon: '📧', value: 'email' },
-          { label: 'Web-Suche & Recherche', icon: '🔍', value: 'search' },
-          { label: 'Organisation & Aufgaben', icon: '📋', value: 'tasks' },
-          { label: 'Alles davon', icon: '⚡', value: 'all' },
+          { label: 'Einsteiger',  icon: '🌱', value: 'simple', sub: 'Chat, E-Mail, Suche — einfach loslegen' },
+          { label: 'Experte',     icon: '⚙️', value: 'expert', sub: 'Skills selbst bauen, Modell wählen, volle Kontrolle' },
         ],
-        'focus',
       )
+    }
+
+    else if (stage === 'level') {
+      const level = value as UIMode
+      setUiMode(level)
+      localStorage.setItem('vela_ui_mode', level)
+      setStage('mode')
+      const levelText = level === 'expert'
+        ? 'Perfekt — du bekommst vollen Zugriff auf Skills, Audit-Log, Modell-Auswahl und Marketplace.'
+        : 'Gut — ich halte es übersichtlich für dich.'
+      await velaSay(levelText + '\n\nWie soll ich deine Daten verarbeiten?')
+      // Mode step uses full tiles — handled separately below
+      setStage('mode-tiles')
+    }
+
+    else if (stage === 'trust-chips') {
+      const t = value as TrustLevel
+      setTrust(t)
+      localStorage.setItem('vela_trust', t)
+      setStage('done')
+      const trustMsg = {
+        cautious:   'Verstanden — ich frage immer bevor ich handle.',
+        balanced:   'Gut — ich entscheide selbst bei einfachen Dingen.',
+        autonomous: 'Alles klar — ich handle selbstständig und berichte danach.',
+      }[t]
+      await velaSay(`${trustMsg}\n\nAlles eingerichtet${userName ? `, ${userName}` : ''}! Ich bin bereit. 🚀`)
+      setCanFinish(true)
     }
   }
 
-  // ─── Focus reply (last step before done) ────────────────────────────────
-  async function handleFocusReply(label: string) {
-    setMessages(prev => prev.map(m =>
-      m.options ? { ...m, options: undefined } : m
-    ))
-    addUserMessage(label)
-    setStage('done')
-    const name = userName || 'du'
-    await addVelaMessage(
-      `Perfekt, ${name}! Ich bin eingerichtet und bereit. Lass uns loslegen 🚀`,
-    )
-    setCanFinish(true)
+  // --- mode tile select (full-width tiles) -----------------------------------
+  async function onModeSelect(m: OperationMode) {
+    setMode(m)
+    localStorage.setItem('vela_mode', m)
+    localStorage.setItem('vela_model', m === 'local' ? 'ollama' : 'claude')
+    if (m === 'cloud') {
+      setCloudWarn(true)
+    } else {
+      await afterModeConfirmed('local')
+    }
   }
 
-  // ─── Render ──────────────────────────────────────────────────────────────
+  async function afterModeConfirmed(m: OperationMode) {
+    setCloudWarn(false)
+    setStage('trust-chips')
+    const modeText = m === 'local'
+      ? '🔒 Lokal — alles bleibt auf deinem Gerät.'
+      : '☁️ Cloud — du nutzt externe KI-Anbieter.'
+    await velaSay(`${modeText}\n\nLetzte Frage: Wie viel Eigeninitiative soll ich haben?`,
+      [
+        { label: 'Vorsichtig',  icon: '🛡️', value: 'cautious',   sub: 'Immer erst fragen' },
+        { label: 'Ausgewogen',  icon: '⚖️', value: 'balanced',   sub: 'Selbst bei einfachem, fragen bei wichtigem' },
+        { label: 'Autonom',     icon: '🚀', value: 'autonomous',  sub: 'Selbst entscheiden, dann berichten' },
+      ],
+    )
+  }
+
+  const stageLabel: Record<string, string> = {
+    intro: 'Vorstellung', name: 'Name', personality: 'Stil',
+    level: 'Modus', 'mode-tiles': 'Infrastruktur', 'trust-chips': 'Autonomie', done: 'Fertig'
+  }
+  const stageList = ['intro', 'name', 'personality', 'level', 'mode-tiles', 'trust-chips', 'done']
+  const progress  = Math.round((stageList.indexOf(stage) / (stageList.length - 1)) * 100)
+
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-lg flex flex-col" style={{ height: '600px' }}>
+      <div className="w-full max-w-xl flex flex-col" style={{ height: '640px' }}>
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-4 px-1">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-lg flex-shrink-0">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-lg flex-shrink-0 shadow-lg">
             ✦
           </div>
-          <div>
-            <h1 className="text-white font-bold text-base leading-tight">Vela</h1>
-            <p className="text-gray-500 text-xs">Einrichtung · {Math.min(Math.round(
-              (['greeting','cloud-confirm','trust','name','focus','done'].indexOf(stage) / 5) * 100
-            ), 100)}% abgeschlossen</p>
+          <div className="flex-1">
+            <h1 className="text-white font-bold text-sm leading-tight">Vela einrichten</h1>
+            <p className="text-gray-500 text-xs">{stageLabel[stage] ?? ''}</p>
           </div>
-          {/* Progress bar */}
-          <div className="ml-auto w-24 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
-              style={{ width: `${Math.min((['greeting','cloud-confirm','trust','name','focus','done'].indexOf(stage) / 5) * 100, 100)}%` }}
-            />
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600 text-xs">{progress}%</span>
+            <div className="w-24 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Chat area */}
+        {/* Chat */}
         <div className="flex-1 overflow-y-auto space-y-4 pr-1 pb-2">
-          {messages.map((msg, i) => (
+          {msgs.map((msg, i) => (
             <div key={i} className={`flex flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-              {/* Bubble */}
-              <div className={`max-w-sm px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-line ${
+              <div className={`max-w-sm px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-line shadow-sm ${
                 msg.role === 'user'
                   ? 'bg-blue-600 text-white rounded-br-sm'
                   : 'bg-gray-800 text-gray-100 rounded-bl-sm'
               }`}>
                 {msg.text}
               </div>
-
-              {/* Quick reply chips */}
-              {msg.options && (
-                <div className="flex flex-wrap gap-2 max-w-sm">
-                  {msg.options.map(opt => (
+              {msg.chips && (
+                <div className="flex flex-col gap-1.5 max-w-xs w-full">
+                  {msg.chips.map(chip => (
                     <button
-                      key={opt.value}
-                      onClick={() => {
-                        if (stage === 'focus') {
-                          void handleFocusReply(opt.label)
-                        } else {
-                          void handleReply(opt.value, `${opt.icon ?? ''} ${opt.label}`.trim(), stage)
-                        }
-                      }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-medium transition-all ${
-                        opt.warning
-                          ? 'border-yellow-600 text-yellow-300 hover:bg-yellow-900/30'
-                          : 'border-blue-500 text-blue-300 hover:bg-blue-900/40'
-                      }`}
+                      key={chip.value}
+                      onClick={() => void onChip(chip.value, `${chip.icon ?? ''} ${chip.label}`.trim())}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl border border-blue-700/60 bg-blue-950/30 hover:bg-blue-900/40 text-left transition-all group"
                     >
-                      {opt.icon && <span>{opt.icon}</span>}
-                      {opt.label}
+                      {chip.icon && <span className="text-base">{chip.icon}</span>}
+                      <div className="flex-1">
+                        <p className="text-blue-200 text-sm font-medium group-hover:text-white">{chip.label}</p>
+                        {chip.sub && <p className="text-gray-500 text-xs">{chip.sub}</p>}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -261,13 +240,84 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
             </div>
           ))}
 
-          {/* Typing indicator */}
+          {/* Typing */}
           {isTyping && (
-            <div className="flex items-start gap-2">
-              <div className="bg-gray-800 px-4 py-3 rounded-2xl rounded-bl-sm flex gap-1 items-center">
-                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div className="flex items-start">
+              <div className="bg-gray-800 px-4 py-3 rounded-2xl rounded-bl-sm flex gap-1 items-center shadow-sm">
+                {[0, 150, 300].map(d => (
+                  <span key={d} className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Mode Tiles (full width) */}
+          {stage === 'mode-tiles' && !isTyping && !cloudWarn && (
+            <div className="grid grid-cols-2 gap-3 mt-2">
+              <button
+                onClick={() => void onModeSelect('local')}
+                className="flex flex-col gap-3 p-4 rounded-2xl border-2 border-green-700/60 bg-green-950/20 hover:border-green-500 hover:bg-green-950/30 text-left transition-all"
+              >
+                <span className="text-3xl">🔒</span>
+                <div>
+                  <p className="text-white font-semibold text-sm">Lokal</p>
+                  <p className="text-gray-400 text-xs mt-0.5">Ollama · alles bleibt bei dir</p>
+                </div>
+                <ul className="text-xs text-gray-400 space-y-0.5">
+                  <li>✓ Kein API-Key nötig</li>
+                  <li>✓ 100% privat</li>
+                  <li>✓ Kostenlos</li>
+                </ul>
+              </button>
+              <button
+                onClick={() => void onModeSelect('cloud')}
+                className="flex flex-col gap-3 p-4 rounded-2xl border-2 border-blue-700/60 bg-blue-950/20 hover:border-blue-500 hover:bg-blue-950/30 text-left transition-all"
+              >
+                <span className="text-3xl">☁️</span>
+                <div>
+                  <p className="text-white font-semibold text-sm">Cloud</p>
+                  <p className="text-gray-400 text-xs mt-0.5">Claude · GPT-4o · Gemini</p>
+                </div>
+                <ul className="text-xs text-gray-400 space-y-0.5">
+                  <li>✓ Deutlich leistungsfähiger</li>
+                  <li>✓ Kein Setup</li>
+                  <li className="text-yellow-400">⚠ Daten verlassen dein Gerät</li>
+                </ul>
+              </button>
+            </div>
+          )}
+
+          {/* Cloud Warning */}
+          {cloudWarn && (
+            <div className="bg-yellow-900/30 border border-yellow-600 rounded-xl p-4 space-y-3">
+              <p className="text-yellow-300 font-semibold text-sm">☁️ Cloud-Modus — kurze Info</p>
+              <p className="text-gray-300 text-xs leading-relaxed">
+                Deine Nachrichten werden an externe Anbieter (Anthropic, OpenAI, Google) gesendet.
+                Vertrauliche Infos solltest du mit Bedacht teilen. Du kannst jederzeit zu Lokal wechseln.
+              </p>
+              <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={cloudConfirm}
+                  onChange={e => setCloudConfirm(e.target.checked)}
+                  className="accent-blue-500"
+                />
+                Ich habe verstanden
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setCloudWarn(false); setCloudConfirm(false) }}
+                  className="flex-1 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 text-xs transition"
+                >
+                  Zurück
+                </button>
+                <button
+                  onClick={() => void afterModeConfirmed('cloud')}
+                  disabled={!cloudConfirm}
+                  className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-500 disabled:opacity-40 transition"
+                >
+                  Cloud aktivieren
+                </button>
               </div>
             </div>
           )}
@@ -275,33 +325,33 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
           <div ref={bottomRef} />
         </div>
 
-        {/* Text input (for name step) */}
+        {/* Text input */}
         {showInput && (
           <div className="flex gap-2 mt-3">
             <input
               type="text"
-              value={inputValue}
-              onChange={e => setInputValue(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') void handleTextSubmit() }}
+              value={textVal}
+              onChange={e => setTextVal(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') void submitName() }}
               placeholder="Dein Name…"
               autoFocus
-              className="flex-1 bg-gray-800 border border-gray-600 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500"
+              className="flex-1 bg-gray-800 border border-gray-600 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500 transition"
             />
             <button
-              onClick={() => void handleTextSubmit()}
-              disabled={!inputValue.trim()}
-              className="px-4 py-2 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-500 disabled:opacity-40 transition"
+              onClick={() => void submitName()}
+              disabled={!textVal.trim()}
+              className="px-4 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-500 disabled:opacity-40 transition"
             >
               →
             </button>
           </div>
         )}
 
-        {/* Finish button */}
+        {/* Finish */}
         {canFinish && (
           <button
-            onClick={() => onComplete(mode, trustLevel)}
-            className="mt-4 w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-base hover:opacity-90 transition"
+            onClick={() => onComplete(mode, trust)}
+            className="mt-4 w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-base hover:opacity-90 transition shadow-lg"
           >
             Vela starten →
           </button>
