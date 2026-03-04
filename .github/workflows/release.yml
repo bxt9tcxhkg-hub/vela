@@ -45,10 +45,8 @@ jobs:
       - name: Build & publish Electron app (${{ matrix.platform }})
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          # macOS Code-Signing deaktiviert (kein Apple Developer Account)
+          CSC_IDENTITY_AUTO_DISCOVERY: false
         run: |
           cd packages/desktop
           pnpm dist:${{ matrix.platform }} --publish=always
