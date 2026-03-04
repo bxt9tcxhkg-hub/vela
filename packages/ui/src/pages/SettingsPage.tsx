@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useVelaStore } from '../store/useVelaStore'
+import type { OperationMode } from '../store/useVelaStore'
 
 type TrustLevel = 'cautious' | 'balanced' | 'autonomous'
 
@@ -38,6 +39,28 @@ export function SettingsPage() {
   const [gmailClientSecret, setGmailClientSecret] = useState('')
   const [gmailRefreshToken, setGmailRefreshToken] = useState('')
   const [gmailSaveStatus, setGmailSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const operationMode = state.operationMode
+  const [modeChanging, setModeChanging] = useState(false)
+  const [cloudWarning, setCloudWarning] = useState(false)
+  const [cloudConfirmed, setCloudConfirmed] = useState(false)
+
+  async function handleModeChange(newMode: OperationMode) {
+    if (newMode === operationMode) return
+    if (newMode === 'cloud') {
+      setCloudWarning(true)
+      return
+    }
+    dispatch({ type: 'SET_MODE', payload: newMode })
+    dispatch({ type: 'SET_MODEL', payload: 'ollama' })
+  }
+
+  function confirmCloudMode() {
+    dispatch({ type: 'SET_MODE', payload: 'cloud' })
+    dispatch({ type: 'SET_MODEL', payload: 'claude' })
+    setCloudWarning(false)
+    setCloudConfirmed(false)
+  }
+
 
   useEffect(() => {
     fetch('http://localhost:3000/api/settings')
@@ -129,6 +152,78 @@ export function SettingsPage() {
       </header>
 
       <div className="px-4 md:px-8 py-8 max-w-xl space-y-10">
+
+
+        {/* ── Betriebsmodus ─────────────────────────────────────────────────── */}
+        <section>
+          <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">Betriebsmodus</h2>
+          <p className="text-earth text-sm mb-4">Du kannst jederzeit zwischen lokalem und Cloud-Betrieb wechseln.</p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => handleModeChange('local')}
+              className={`flex flex-col gap-2 p-4 rounded-2xl border-2 text-left transition-all ${
+                operationMode === 'local'
+                  ? 'border-green-500 bg-green-950/20'
+                  : 'border-gray-700 hover:border-gray-500 bg-gray-900/40'
+              }`}
+            >
+              <span className="text-2xl">🔒</span>
+              <p className="font-semibold text-white text-sm">Lokal</p>
+              <p className="text-xs text-gray-400">Ollama · keine Daten nach außen</p>
+              {operationMode === 'local' && <span className="text-xs text-green-400 font-medium">✓ Aktiv</span>}
+            </button>
+
+            <button
+              onClick={() => handleModeChange('cloud')}
+              className={`flex flex-col gap-2 p-4 rounded-2xl border-2 text-left transition-all ${
+                operationMode === 'cloud'
+                  ? 'border-blue-500 bg-blue-950/20'
+                  : 'border-gray-700 hover:border-gray-500 bg-gray-900/40'
+              }`}
+            >
+              <span className="text-2xl">☁️</span>
+              <p className="font-semibold text-white text-sm">Cloud</p>
+              <p className="text-xs text-gray-400">Claude · GPT-4o · Gemini</p>
+              {operationMode === 'cloud' && <span className="text-xs text-blue-400 font-medium">✓ Aktiv</span>}
+            </button>
+          </div>
+
+          {/* Cloud-Risikowarnung */}
+          {cloudWarning && (
+            <div className="mt-4 bg-yellow-900/30 border border-yellow-600 rounded-xl p-4 space-y-3">
+              <p className="text-yellow-300 font-medium text-sm">⚠ Zu Cloud wechseln?</p>
+              <p className="text-gray-300 text-xs">
+                Deine Nachrichten werden an externe KI-Anbieter gesendet und verlassen dein Gerät.
+                Du kannst jederzeit zurück zum lokalen Modus wechseln.
+              </p>
+              <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={cloudConfirmed}
+                  onChange={e => setCloudConfirmed(e.target.checked)}
+                  className="accent-blue-500"
+                />
+                Ich habe verstanden und möchte trotzdem wechseln
+              </label>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setCloudWarning(false)}
+                  className="px-4 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 text-sm transition"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  onClick={confirmCloudMode}
+                  disabled={!cloudConfirmed}
+                  className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-500 disabled:opacity-40 transition"
+                >
+                  Cloud aktivieren
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
 
         {/* KI-Verbindung */}
         <section>

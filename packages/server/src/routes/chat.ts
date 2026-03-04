@@ -1,8 +1,10 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import { config } from '../config.js'
 import { webSearchSkill } from '../skills/web-search.js'
+import { chatOllama, isOllamaAvailable, listOllamaModels } from '../ai/ollama.js'
 
 const MessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -10,15 +12,10 @@ const MessageSchema = z.object({
 })
 
 const ChatRequestSchema = z.object({
-  messages: z.array(MessageSchema),
-  model: z.string().optional(),
+  messages:  z.array(MessageSchema),
+  model:     z.string().optional(),   // 'ollama', 'claude', 'openai'
+  provider:  z.string().optional(),   // expliziter Provider-Override
 })
-
-interface ActivityEntry {
-  icon: string
-  description: string
-  status: string
-}
 
 function needsWebSearch(message: string): string | null {
   const lower = message.toLowerCase()
@@ -39,76 +36,118 @@ function needsWebSearch(message: string): string | null {
   return null
 }
 
+function getSystemPrompt(): string {
+  return (
+    process.env.VELA_SYSTEM_PROMPT ??
+    `Du bist ${process.env.VELA_NAME ?? 'Vela'}, ein persönlicher KI-Assistent. ` +
+    `Du bist hilfsbereit, präzise und antwortest auf Deutsch. ` +
+    `Du handelst niemals ohne Bestätigung des Nutzers bei wichtigen Aktionen.`
+  )
+}
+
 export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
+
+  // ─── Health ──────────────────────────────────────────────────────────────
   fastify.get('/api/health', async (_req, reply) => {
-    const body = JSON.stringify({ status: 'ok', version: '0.1.0' })
-    return reply
-      .code(200)
-      .header('Content-Type', 'application/json')
-      .header('Content-Length', Buffer.byteLength(body))
-      .send(body)
+    const ollamaOk = await isOllamaAvailable()
+    const body = JSON.stringify({
+      status:  'ok',
+      version: '0.1.0',
+      ollama:  ollamaOk,
+    })
+    return reply.code(200).header('Content-Type', 'application/json').send(body)
   })
 
+  // ─── Ollama-Status & Modelle ──────────────────────────────────────────────
+  fastify.get('/api/ollama/status', async (_req, reply) => {
+    const available = await isOllamaAvailable()
+    const models    = available ? await listOllamaModels() : []
+    return reply.code(200).send({ available, models })
+  })
+
+  // ─── Chat ─────────────────────────────────────────────────────────────────
   fastify.post('/api/chat', async (request, reply) => {
-    // Check API key
-    const apiKey = process.env.ANTHROPIC_API_KEY ?? ''
-    if (!apiKey) {
-      return reply.code(400).send({ error: 'Kein API Key konfiguriert. Bitte in den Einstellungen hinterlegen.' })
-    }
+    const body     = ChatRequestSchema.parse(request.body)
+    const provider = body.provider ?? body.model ?? 'ollama'
 
-    const body = ChatRequestSchema.parse(request.body)
+    const lastUser     = [...body.messages].reverse().find(m => m.role === 'user')
+    const userText     = lastUser?.content ?? ''
+    const searchQuery  = needsWebSearch(userText)
+    let   systemPrompt = getSystemPrompt()
+    let   skillUsed: string | null = null
 
-    const client = new Anthropic({ apiKey })
-
-    // Detect if web search is needed
-    const lastUserMessage = [...body.messages].reverse().find(m => m.role === 'user')
-    const userMessageText = lastUserMessage?.content ?? ''
-    const searchQuery = lastUserMessage ? needsWebSearch(userMessageText) : null
-
-    const systemPrompt = process.env.VELA_SYSTEM_PROMPT ??
-      `Du bist ${process.env.VELA_NAME ?? 'Vela'}, ein persönlicher KI-Assistent. Du bist hilfsbereit, präzise und antwortest auf Deutsch. Du handelst niemals ohne Bestätigung des Nutzers bei wichtigen Aktionen.`
-
-    let activeSystemPrompt = systemPrompt
-    let skillUsed: string | null = null
-
+    // Web-Search-Kontext einfügen
     if (searchQuery) {
       try {
-        const searchResult = await webSearchSkill.execute({ query: searchQuery })
-        if (searchResult.success && searchResult.summary !== 'Keine direkte Antwort gefunden') {
-          activeSystemPrompt += `\n\nAktuelle Web-Suchergebnisse für "${searchQuery}":\n${searchResult.summary}`
+        const result = await webSearchSkill.execute({ query: searchQuery })
+        if (result.success && result.summary !== 'Keine direkte Antwort gefunden') {
+          systemPrompt += `\n\nAktuelle Web-Suchergebnisse für "${searchQuery}":\n${result.summary}`
           skillUsed = 'web-search'
         }
-      } catch (_err) {
-        // Ignore search errors, proceed without context
+      } catch { /* ignorieren */ }
+    }
+
+    let text = ''
+
+    // ── Ollama (lokal) ────────────────────────────────────────────────────
+    if (provider === 'ollama' || provider === 'local') {
+      const available = await isOllamaAvailable()
+      if (!available) {
+        return reply.code(503).send({
+          error: 'Ollama-Dienst nicht erreichbar. Bitte Ollama starten: ollama serve',
+          hint:  'Du kannst in den Einstellungen zum Cloud-Modus wechseln.',
+        })
       }
+      const model = process.env.OLLAMA_MODEL ?? 'llama3.1:8b'
+      text = await chatOllama(body.messages, model, systemPrompt)
     }
 
-    const response = await client.messages.create({
-      model: process.env.DEFAULT_MODEL ?? 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      system: activeSystemPrompt,
-      messages: body.messages,
-    })
-
-    const text = response.content
-      .filter((b) => b.type === 'text')
-      .map((b) => (b as { type: 'text'; text: string }).text)
-      .join('')
-
-    // Build activity entry
-    let activity: ActivityEntry
-    if (skillUsed === 'web-search' && searchQuery) {
-      activity = { icon: '🔍', description: 'Web-Suche: ' + searchQuery, status: 'done' }
-    } else {
-      activity = { icon: '💬', description: 'Chat: ' + userMessageText.slice(0, 40), status: 'done' }
+    // ── Anthropic Claude ──────────────────────────────────────────────────
+    else if (provider === 'claude' || provider === 'anthropic') {
+      const apiKey = process.env.ANTHROPIC_API_KEY ?? ''
+      if (!apiKey) {
+        return reply.code(400).send({ error: 'Kein Anthropic API-Key konfiguriert.' })
+      }
+      const client   = new Anthropic({ apiKey })
+      const response = await client.messages.create({
+        model:      process.env.DEFAULT_MODEL ?? 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        system:     systemPrompt,
+        messages:   body.messages,
+      })
+      text = response.content
+        .filter(b => b.type === 'text')
+        .map(b => (b as { type: 'text'; text: string }).text)
+        .join('')
     }
 
-    const responseBody = JSON.stringify({ text, skillUsed, activity })
-    return reply
-      .code(200)
+    // ── OpenAI ────────────────────────────────────────────────────────────
+    else if (provider === 'openai' || provider === 'gpt') {
+      const apiKey = process.env.OPENAI_API_KEY ?? ''
+      if (!apiKey) {
+        return reply.code(400).send({ error: 'Kein OpenAI API-Key konfiguriert.' })
+      }
+      const client   = new OpenAI({ apiKey })
+      const response = await client.chat.completions.create({
+        model:    'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...body.messages,
+        ],
+      })
+      text = response.choices[0]?.message?.content ?? ''
+    }
+
+    else {
+      return reply.code(400).send({ error: `Unbekannter Provider: ${provider}` })
+    }
+
+    const activity = skillUsed === 'web-search' && searchQuery
+      ? { icon: '🔍', description: `Web-Suche: ${searchQuery}`, status: 'done' }
+      : { icon: '💬', description: `Chat: ${userText.slice(0, 40)}`, status: 'done' }
+
+    return reply.code(200)
       .header('Content-Type', 'application/json; charset=utf-8')
-      .header('Content-Length', Buffer.byteLength(responseBody))
-      .header('Transfer-Encoding', '')
-      .send(responseBody)
+      .send(JSON.stringify({ text, skillUsed, provider, activity }))
   })
 }

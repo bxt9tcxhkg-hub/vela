@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useReducer } from 'react'
 
+export type OperationMode = 'local' | 'cloud'
+
 export interface Message {
   id: string
   role: 'user' | 'vela'
@@ -29,6 +31,7 @@ export interface VelaState {
   activities: Activity[]
   trustLevel: 'cautious' | 'balanced' | 'autonomous'
   activeModel: string
+  operationMode: OperationMode
   pendingConfirmation: ConfirmAction | null
   isTyping: boolean
 }
@@ -39,21 +42,32 @@ type Action =
   | { type: 'SET_TYPING'; payload: boolean }
   | { type: 'SET_TRUST'; payload: VelaState['trustLevel'] }
   | { type: 'SET_MODEL'; payload: string }
+  | { type: 'SET_MODE'; payload: OperationMode }
   | { type: 'SET_CONFIRMATION'; payload: ConfirmAction | null }
   | { type: 'ADD_ACTIVITY'; payload: Activity }
   | { type: 'CLEAR_MESSAGES' }
 
-const initialActivities: Activity[] = []
-
-const initialMessages: Message[] = []
+function loadPersistedState(): Partial<VelaState> {
+  try {
+    return {
+      trustLevel:    (localStorage.getItem('vela_trust') as VelaState['trustLevel']) || 'balanced',
+      operationMode: (localStorage.getItem('vela_mode') as OperationMode) || 'local',
+      activeModel:   localStorage.getItem('vela_model') || 'ollama',
+    }
+  } catch {
+    return {}
+  }
+}
 
 const initialState: VelaState = {
-  messages: initialMessages,
-  activities: initialActivities,
-  trustLevel: 'balanced',
-  activeModel: 'claude',
+  messages:           [],
+  activities:         [],
+  trustLevel:         'balanced',
+  activeModel:        'ollama',
+  operationMode:      'local',
   pendingConfirmation: null,
-  isTyping: false,
+  isTyping:           false,
+  ...loadPersistedState(),
 }
 
 function reducer(state: VelaState, action: Action): VelaState {
@@ -70,9 +84,14 @@ function reducer(state: VelaState, action: Action): VelaState {
     case 'SET_TYPING':
       return { ...state, isTyping: action.payload }
     case 'SET_TRUST':
+      localStorage.setItem('vela_trust', action.payload)
       return { ...state, trustLevel: action.payload }
     case 'SET_MODEL':
+      localStorage.setItem('vela_model', action.payload)
       return { ...state, activeModel: action.payload }
+    case 'SET_MODE':
+      localStorage.setItem('vela_mode', action.payload)
+      return { ...state, operationMode: action.payload }
     case 'SET_CONFIRMATION':
       return { ...state, pendingConfirmation: action.payload }
     case 'ADD_ACTIVITY':

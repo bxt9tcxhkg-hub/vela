@@ -1,0 +1,32 @@
+name: file-manager
+version: 1.0.0
+description: Read, write, list and search files in allowed directories
+author: vela-team
+license: Apache-2.0
+permissions:
+  - fs:read
+  - fs:write
+inputs:
+  - name: action
+    type: string
+    required: true
+    description: "list | read | write | search"
+  - name: path
+    type: string
+    required: true
+    description: File or directory path
+  - name: content
+    type: string
+    required: false
+    description: Content to write (for write action)
+  - name: query
+    type: string
+    required: false
+    description: Search query (for search action)
+guardrails:
+  confirmBeforeExecute: true
+  riskLevel: medium
+  allowedPaths:
+    - "~/Documents"
+    - "~/Desktop"
+    - "~/Downloads"
