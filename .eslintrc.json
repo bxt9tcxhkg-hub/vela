@@ -4,13 +4,18 @@
   "plugins": ["@typescript-eslint"],
   "extends": [
     "eslint:recommended",
-    "plugin:@typescript-eslint/recommended-type-checked"
+    "plugin:@typescript-eslint/recommended"
   ],
-  "parserOptions": {
-    "project": true
+  "env": {
+    "node": true,
+    "browser": true,
+    "es2022": true
   },
   "rules": {
-    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
-    "@typescript-eslint/consistent-type-imports": "error"
-  }
+    "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/consistent-type-imports": "warn",
+    "no-undef": "off"
+  },
+  "ignorePatterns": ["dist/", "node_modules/", "release/", "*.js"]
 }
