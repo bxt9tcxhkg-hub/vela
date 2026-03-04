@@ -8,6 +8,8 @@ import type { BackendAdapter } from './types.js'
 import { anthropicAdapter } from './anthropic.js'
 import { groqAdapter }      from './groq.js'
 import { ollamaAdapter }    from './ollama.js'
+import { geminiAdapter }    from './gemini.js'
+import { openaiAdapter }    from './openai.js'
 
 export type BackendName = 'anthropic' | 'groq' | 'local' | 'openai'
 
@@ -15,6 +17,8 @@ const ADAPTERS: Record<string, BackendAdapter> = {
   anthropic: anthropicAdapter,
   groq:      groqAdapter,
   local:     ollamaAdapter,
+  gemini:    geminiAdapter,
+  openai:    openaiAdapter,
 }
 
 export function getAdapter(backend?: string): BackendAdapter {
@@ -28,7 +32,7 @@ export async function getAvailableAdapter(preferred?: string): Promise<BackendAd
   if (await preferredAdapter.isAvailable()) return preferredAdapter
 
   // Fallback-Reihenfolge
-  const fallbacks: BackendAdapter[] = [anthropicAdapter, groqAdapter, ollamaAdapter]
+  const fallbacks: BackendAdapter[] = [anthropicAdapter, groqAdapter, geminiAdapter, ollamaAdapter, openaiAdapter]
   for (const adapter of fallbacks) {
     if (adapter.name !== preferredAdapter.name && await adapter.isAvailable()) {
       console.log(`✦ Backend-Fallback: ${preferredAdapter.name} → ${adapter.name}`)
@@ -40,4 +44,4 @@ export async function getAvailableAdapter(preferred?: string): Promise<BackendAd
   return preferredAdapter  // Wird beim chat() einen sprechenden Fehler werfen
 }
 
-export { anthropicAdapter, groqAdapter, ollamaAdapter }
+export { anthropicAdapter, groqAdapter, ollamaAdapter, geminiAdapter, openaiAdapter }

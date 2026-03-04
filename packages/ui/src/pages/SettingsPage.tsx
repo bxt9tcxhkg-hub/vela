@@ -12,10 +12,11 @@ const trustOptions: { value: TrustLevel; label: string; description: string }[] 
 ]
 
 const models = [
-  { value: 'claude', label: 'Claude (Anthropic)' },
-  { value: 'gpt4o', label: 'GPT-4o (OpenAI)' },
-  { value: 'gemini', label: 'Gemini (Google)' },
-  { value: 'ollama', label: 'Ollama (lokal)' },
+  { value: 'anthropic', label: 'Claude (Anthropic)' },
+  { value: 'groq',      label: 'Groq — Llama/Gemma (kostenlos) ⚡' },
+  { value: 'gemini',    label: 'Gemini (Google, kostenlos) 🆓' },
+  { value: 'openai',    label: 'OpenAI / Kompatibel (Experten)' },
+  { value: 'local',     label: 'Ollama (lokal, kein Internet)' },
 ]
 
 export function SettingsPage() {
@@ -25,6 +26,8 @@ export function SettingsPage() {
   const [backendMode, setBackendMode] = useState<BackendMode>('local')
   const [activeModel, setActiveModel] = useState('claude')
   const [apiKey, setApiKey] = useState('')
+  const [geminiKey, setGeminiKey] = useState('')
+  const [openaiBaseUrl, setOpenaiBaseUrl] = useState('https://api.openai.com/v1')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [testError, setTestError] = useState('')
@@ -47,6 +50,7 @@ export function SettingsPage() {
       .then((r) => r.json())
       .then((data: { hasAnthropicKey: boolean; model: string; velaName?: string; systemPrompt?: string; hasGmailConfig?: boolean }) => {
         if (data.model) setActiveModel(data.model)
+        if ((data as Record<string,unknown>).openaiBaseUrl) setOpenaiBaseUrl((data as Record<string,unknown>).openaiBaseUrl as string)
         if (data.backend) setBackendMode(data.backend as BackendMode)
         if (data.velaName) setVelaName(data.velaName)
         if (data.systemPrompt) setSystemPrompt(data.systemPrompt)
@@ -68,8 +72,9 @@ export function SettingsPage() {
     setSaveStatus('saving')
     try {
       const body: Record<string, string> = {}
-      if (activeModel === 'claude') body.anthropicKey = apiKey
-      else if (activeModel === 'gpt4o') body.openaiKey = apiKey
+      if (activeModel === 'anthropic') body.anthropicKey = apiKey
+      else if (activeModel === 'openai') body.openaiKey = apiKey
+      else if (activeModel === 'gemini' && geminiKey) body.geminiKey = geminiKey
       body.model = activeModel
       await fetch('http://localhost:3000/api/settings', {
         method: 'POST',
@@ -249,6 +254,46 @@ export function SettingsPage() {
             </div>
           </div>
         </section>
+
+        {/* Experten: OpenAI-kompatibler Endpunkt */}
+        {activeModel === 'openai' && (
+          <section>
+            <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">OpenAI-kompatibler Endpunkt</h2>
+            <p className="text-earth text-sm mb-4">Für Experten: Beliebigen OpenAI-kompatiblen Server einbinden.</p>
+            <div className="bg-warm border border-sand rounded-2xl p-5 space-y-4">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-xs text-yellow-800">
+                <p className="font-medium mb-1">Kompatible Endpunkte:</p>
+                <p>• LM Studio: http://localhost:1234/v1</p>
+                <p>• Ollama (OpenAI-Mode): http://localhost:11434/v1</p>
+                <p>• OpenRouter: https://openrouter.ai/api/v1</p>
+                <p>• Together AI: https://api.together.xyz/v1</p>
+                <p>• lokale llama.cpp: http://localhost:8080/v1</p>
+              </div>
+              <label className="block">
+                <span className="text-ink text-sm font-medium mb-1.5 block">Base URL</span>
+                <input
+                  type="text"
+                  value={openaiBaseUrl}
+                  onChange={(e) => setOpenaiBaseUrl(e.target.value)}
+                  placeholder="https://api.openai.com/v1"
+                  className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors font-mono"
+                />
+              </label>
+              <button
+                onClick={async () => {
+                  await fetch('http://localhost:3000/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ openaiBaseUrl, backend: 'openai' }),
+                  })
+                }}
+                className="px-4 py-2 bg-sky text-white rounded-xl text-sm font-medium hover:bg-sky/90 transition-colors"
+              >
+                Endpunkt speichern
+              </button>
+            </div>
+          </section>
+        )}
 
         {/* Trust Level */}
         <section>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 
-type Tab = 'claude' | 'groq' | 'openai' | 'ollama'
+type Tab = 'claude' | 'groq' | 'gemini' | 'openai' | 'ollama'
 type TrustLevel = 'cautious' | 'balanced' | 'autonomous'
 
 interface HardwareInfo {
@@ -40,6 +40,7 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
   const [tab, setTab] = useState<Tab>('claude')
   const [claudeKey, setClaudeKey] = useState('')
   const [groqKey, setGroqKey] = useState('')
+  const [geminiKey, setGeminiKey] = useState('')
   const [openaiKey, setOpenaiKey] = useState('')
   const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [testError, setTestError] = useState('')
@@ -72,6 +73,7 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
       if (tab === 'claude' && claudeKey) body.anthropicKey = claudeKey
       if (tab === 'openai' && openaiKey) body.openaiKey = openaiKey
       if (tab === 'groq' && groqKey) body.groqKey = groqKey
+      if (tab === 'gemini' && geminiKey) body.geminiKey = geminiKey
       if (Object.keys(body).length > 0) {
         await fetch('http://localhost:3000/api/settings', {
           method: 'POST',
@@ -80,7 +82,7 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
         })
       }
       // Set backend
-      const backendMap: Record<Tab, string> = { claude: 'anthropic', groq: 'groq', openai: 'openai', ollama: 'local' }
+      const backendMap: Record<Tab, string> = { claude: 'anthropic', groq: 'groq', gemini: 'gemini', openai: 'openai', ollama: 'local' }
       await fetch('http://localhost:3000/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -179,7 +181,7 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
 
             {/* Tabs */}
             <div className="flex gap-1 bg-warm border border-sand rounded-xl p-1 flex-wrap">
-              {(['claude', 'groq', 'openai', 'ollama'] as Tab[]).map((t) => (
+              {(['claude', 'groq', 'gemini', 'openai', 'ollama'] as Tab[]).map((t) => (
                 <button
                   key={t}
                   onClick={() => { setTab(t); setTestStatus('idle') }}
@@ -187,7 +189,7 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
                     tab === t ? 'bg-white text-ink shadow-sm' : 'text-earth hover:text-ink'
                   }`}
                 >
-                  {t === 'claude' ? 'Anthropic' : t === 'openai' ? 'OpenAI' : t === 'groq' ? 'Groq ⚡' : 'Ollama'}
+                  {t === 'claude' ? 'Anthropic' : t === 'openai' ? 'OpenAI' : t === 'groq' ? 'Groq ⚡' : t === 'gemini' ? 'Gemini 🆓' : 'Ollama'}
                 </button>
               ))}
             </div>
@@ -243,6 +245,27 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
                     className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
                   />
                 </label>
+              )}
+              {tab === 'gemini' && (
+                <>
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-ink">
+                    <p className="font-medium mb-1">🆓 Google Gemini — kostenlos</p>
+                    <p className="text-earth text-xs">Kostenloser API-Key auf aistudio.google.com. Kein Credit Card nötig. Daten gehen an Google-Server.</p>
+                  </div>
+                  <label className="block">
+                    <span className="text-ink text-sm font-medium mb-1.5 block">GEMINI_API_KEY</span>
+                    <input
+                      type="password"
+                      value={geminiKey}
+                      onChange={(e) => setGeminiKey(e.target.value)}
+                      placeholder="AIzaSy..."
+                      className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+                    />
+                  </label>
+                  <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-sky text-xs hover:underline">
+                    ↗ Kostenloser API Key auf aistudio.google.com
+                  </a>
+                </>
               )}
               {tab === 'ollama' && (
                 <div className="space-y-3">

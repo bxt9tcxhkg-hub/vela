@@ -23,6 +23,8 @@ interface SettingsBody {
   anthropicKey?: string
   openaiKey?: string
   groqKey?: string
+  geminiKey?: string
+  openaiBaseUrl?: string
   backend?: string
   prefLevel?: string
   prefLanguage?: string
@@ -42,6 +44,9 @@ export async function settingsRoutes(fastify: FastifyInstance) {
     const body = JSON.stringify({
       hasAnthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
       hasGroqKey: Boolean(process.env.GROQ_API_KEY),
+      hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
+      hasOpenaiKey: Boolean(process.env.OPENAI_API_KEY),
+      openaiBaseUrl: process.env.VELA_OPENAI_BASE_URL ?? 'https://api.openai.com/v1',
       model: process.env.DEFAULT_MODEL ?? 'claude-haiku-4-5-20251001',
       velaName: process.env.VELA_NAME ?? 'Vela',
       systemPrompt: process.env.VELA_SYSTEM_PROMPT ?? '',
@@ -61,10 +66,16 @@ export async function settingsRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post<{ Body: SettingsBody }>('/api/settings', async (req, reply) => {
-    const { anthropicKey, openaiKey, groqKey, backend, prefLevel, prefLanguage, prefTone, prefPurpose, prefName, model, systemPrompt, velaName, googleClientId, googleClientSecret, googleRefreshToken } = req.body ?? {}
+    const { anthropicKey, openaiKey, groqKey, geminiKey, openaiBaseUrl, backend, prefLevel, prefLanguage, prefTone, prefPurpose, prefName, model, systemPrompt, velaName, googleClientId, googleClientSecret, googleRefreshToken } = req.body ?? {}
 
     if (groqKey?.trim()) {
       writeEnvKey('GROQ_API_KEY', groqKey.trim())
+    }
+    if (geminiKey?.trim()) {
+      writeEnvKey('GEMINI_API_KEY', geminiKey.trim())
+    }
+    if (openaiBaseUrl?.trim()) {
+      writeEnvKey('VELA_OPENAI_BASE_URL', openaiBaseUrl.trim())
     }
     if (backend?.trim()) {
       writeEnvKey('VELA_BACKEND', backend.trim())
