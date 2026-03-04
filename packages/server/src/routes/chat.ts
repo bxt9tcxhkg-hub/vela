@@ -129,11 +129,28 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
         return reply.code(400).send({ error: 'Kein Anthropic API-Key konfiguriert.' })
       }
       const client   = new Anthropic({ apiKey })
+      // Support image messages: convert { role, content: [{type:'image_url', url}] } to Anthropic format
+      const anthropicMessages = (body.messages as { role: string; content: string | { type: string; image_url?: { url: string }; text?: string }[] }[]).map(m => {
+        if (typeof m.content === 'string') return m
+        const parts = m.content.map(p => {
+          if (p.type === 'image_url' && p.image_url?.url) {
+            const url = p.image_url.url
+            if (url.startsWith('data:')) {
+              const [meta, data] = url.split(',')
+              const mediaType = (meta.split(':')[1]?.split(';')[0] ?? 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+              return { type: 'image' as const, source: { type: 'base64' as const, media_type: mediaType, data } }
+            }
+            return { type: 'image' as const, source: { type: 'url' as const, url } }
+          }
+          return { type: 'text' as const, text: p.text ?? '' }
+        })
+        return { role: m.role, content: parts }
+      })
       const response = await client.messages.create({
         model:      process.env.DEFAULT_MODEL ?? 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
         system:     systemPrompt,
-        messages:   body.messages,
+        messages:   anthropicMessages as Parameters<typeof client.messages.create>[0]['messages'],
       })
       text = response.content
         .filter(b => b.type === 'text')

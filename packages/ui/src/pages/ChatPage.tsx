@@ -29,6 +29,8 @@ export function ChatPage() {
   const [notifOpen, setNotifOpen] = useState(false)
   const [notifications, setNotifications] = useState<{id:string;title:string;body:string;read:number;created_at:string}[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [permissionRequest, setPermissionRequest] = useState<{
     skillName: string
     permission: string
@@ -153,6 +155,19 @@ export function ChatPage() {
     await fetch(`http://localhost:3000/api/preferences/suggestions/${id}/reject`, { method: 'POST' })
     setSuggestions(prev => prev.filter(s => s.id !== id))
   }
+
+
+  async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => {
+      setImagePreview(ev.target?.result as string)
+    }
+    reader.readAsDataURL(file)
+    if (e.target) e.target.value = ''
+  }
+
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -391,7 +406,16 @@ export function ChatPage() {
       {/* Input */}
       <div className="px-4 md:px-8 py-4 border-t border-border bg-surface shrink-0">
         <div className="flex items-end gap-3 bg-surface2 rounded-2xl border border-border px-4 py-3 focus-within:border-blue-600/50">
-          <textarea
+          {imagePreview && (
+          <div className="flex items-start gap-2 mb-2">
+            <div className="relative">
+              <img src={imagePreview} alt="preview" className="h-16 w-16 object-cover rounded-xl border border-border" />
+              <button onClick={() => setImagePreview(null)} className="absolute -top-1.5 -right-1.5 bg-surface border border-border text-vtext3 hover:text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">✕</button>
+            </div>
+            <p className="text-vtext3 text-xs mt-1">Bild wird mit der nächsten Nachricht gesendet</p>
+          </div>
+        )}
+        <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => { setInput(e.target.value); autoResize() }}
@@ -431,6 +455,13 @@ export function ChatPage() {
           >
             📎 Datei
           </button>
+          <button
+            onClick={() => imageInputRef.current?.click()}
+            className="flex items-center gap-1 text-xs text-vtext3 hover:text-white border border-border hover:border-border2 rounded-lg px-2 py-1 transition-colors"
+          >
+            🖼 Bild
+          </button>
+          <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={e => void handleImageSelect(e)} />
           <input ref={fileInputRef} type="file" accept=".txt,.md,.csv,.json,.ts,.tsx,.js,.py" className="hidden" onChange={e => void handleFileUpload(e)} />
           <span className="ml-auto text-xs text-vtext3">Enter senden · Shift+Enter Zeilenumbruch</span>
         </div>
