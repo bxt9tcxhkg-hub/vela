@@ -17,6 +17,7 @@ import { documentRoutes } from './routes/documents.js'
 import { workflowRoutes } from './routes/workflows.js'
 import { memoryRoutes } from './routes/memory.js'
 import { preferencesRoutes } from './routes/preferences.js'
+import { ttsRoutes } from './routes/tts.js'
 import { marketplaceRoutes } from './routes/marketplace.js'
 import { oauthRoutes } from './routes/oauth.js'
 import { onboardingRoutes } from './routes/onboarding.js'
@@ -49,6 +50,7 @@ await fastify.register(feedbackRoutes)
   await fastify.register(workflowRoutes)
   await fastify.register(memoryRoutes)
   await fastify.register(preferencesRoutes)
+  await fastify.register(ttsRoutes)
 
 // Serve UI static files in production
 if (process.env.NODE_ENV === 'production') {
