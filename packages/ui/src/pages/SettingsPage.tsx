@@ -175,10 +175,10 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="flex-1 bg-cream min-h-screen">
-      <header className="px-6 py-8 border-b border-sand bg-warm">
-        <h1 className="font-fraunces font-semibold text-2xl text-ink">Einstellungen</h1>
-        <p className="text-earth text-sm mt-1">Passe Vela an deine Bedürfnisse an</p>
+    <div className="flex-1 bg-bg min-h-screen">
+      <header className="px-6 py-8 border-b border-border bg-surface">
+        <h1 className="font-fraunces font-semibold text-2xl text-white">Einstellungen</h1>
+        <p className="text-vtext2 text-sm mt-1">Passe Vela an deine Bedürfnisse an</p>
       </header>
 
       <div className="px-4 md:px-8 py-8 max-w-xl space-y-10">
@@ -186,8 +186,8 @@ export function SettingsPage() {
 
         {/* ── Betriebsmodus ─────────────────────────────────────────────────── */}
         <section>
-          <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">Betriebsmodus</h2>
-          <p className="text-earth text-sm mb-4">Du kannst jederzeit zwischen lokalem und Cloud-Betrieb wechseln.</p>
+          <h2 className="font-fraunces font-semibold text-lg text-white mb-1">Betriebsmodus</h2>
+          <p className="text-vtext2 text-sm mb-4">Du kannst jederzeit zwischen lokalem und Cloud-Betrieb wechseln.</p>
 
           <div className="grid grid-cols-2 gap-3">
             <button
@@ -257,16 +257,16 @@ export function SettingsPage() {
 
         {/* KI-Verbindung */}
         <section>
-          <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">KI-Verbindung</h2>
-          <p className="text-earth text-sm mb-4">Verbinde Vela mit deinem KI-Anbieter.</p>
+          <h2 className="font-fraunces font-semibold text-lg text-white mb-1">KI-Verbindung</h2>
+          <p className="text-vtext2 text-sm mb-4">Verbinde Vela mit deinem KI-Anbieter.</p>
 
-          <div className="bg-warm border border-sand rounded-2xl p-5 space-y-4">
+          <div className="bg-surface border border-border rounded-2xl p-5 space-y-4">
             <div className="flex items-center gap-3">
-              <span className="text-earth text-sm">Aktives Modell:</span>
+              <span className="text-vtext2 text-sm">Aktives Modell:</span>
               <select
                 value={activeModel}
                 onChange={(e) => setActiveModel(e.target.value)}
-                className="bg-cream border border-sand rounded-xl px-3 py-1.5 text-ink text-sm outline-none focus:border-sky"
+                className="bg-surface2 border border-border rounded-xl px-3 py-1.5 text-white text-sm outline-none focus:border-blue-500"
               >
                 {models.map((m) => (
                   <option key={m.value} value={m.value}>{m.label}</option>
@@ -276,25 +276,25 @@ export function SettingsPage() {
 
             {activeModel !== 'ollama' && (
               <label className="block">
-                <span className="text-ink text-sm font-medium mb-1.5 block">API Key</span>
+                <span className="text-white text-sm font-medium mb-1.5 block">API Key</span>
                 <input
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder={activeModel === 'claude' ? 'sk-ant-...' : 'sk-...'}
-                  className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+                  className="w-full bg-surface2 border border-border rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-500 transition-colors"
                 />
               </label>
             )}
             {activeModel === 'ollama' && (
-              <p className="text-earth text-sm">Ollama läuft lokal – kein API Key nötig.</p>
+              <p className="text-vtext2 text-sm">Ollama läuft lokal – kein API Key nötig.</p>
             )}
 
             <div className="flex items-center gap-3 flex-wrap">
               <button
                 onClick={testConnection}
                 disabled={testStatus === 'loading'}
-                className="px-4 py-2 bg-cream border border-sand rounded-xl text-ink text-sm font-medium hover:border-bark transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-surface2 border border-border rounded-xl text-white text-sm font-medium hover:border-border2 transition-colors disabled:opacity-50"
               >
                 {testStatus === 'loading' ? '...' : 'Verbindung testen'}
               </button>
@@ -302,64 +302,64 @@ export function SettingsPage() {
                 <button
                   onClick={saveApiKey}
                   disabled={saveStatus === 'saving' || !apiKey}
-                  className="px-4 py-2 bg-sky text-white rounded-xl text-sm font-medium hover:bg-sky/90 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-500 transition-colors disabled:opacity-50"
                 >
                   {saveStatus === 'saving' ? 'Speichern...' : saveStatus === 'saved' ? '✓ Gespeichert' : 'Speichern'}
                 </button>
               )}
-              {testStatus === 'success' && <span className="text-green-600 text-sm">✓ Verbindung erfolgreich</span>}
-              {testStatus === 'error' && <span className="text-red-500 text-sm">✗ {testError}</span>}
-              {saveStatus === 'error' && <span className="text-red-500 text-sm">Fehler beim Speichern</span>}
+              {testStatus === 'success' && <span className="text-green-400 text-sm">✓ Verbindung erfolgreich</span>}
+              {testStatus === 'error' && <span className="text-red-400 text-sm">✗ {testError}</span>}
+              {saveStatus === 'error' && <span className="text-red-400 text-sm">Fehler beim Speichern</span>}
             </div>
           </div>
         </section>
 
         {/* Persönlichkeit */}
         <section>
-          <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">Persönlichkeit</h2>
-          <p className="text-earth text-sm mb-4">Wie soll Vela heißen und sich verhalten?</p>
+          <h2 className="font-fraunces font-semibold text-lg text-white mb-1">Persönlichkeit</h2>
+          <p className="text-vtext2 text-sm mb-4">Wie soll Vela heißen und sich verhalten?</p>
 
-          <div className="bg-warm border border-sand rounded-2xl p-5 space-y-4">
+          <div className="bg-surface border border-border rounded-2xl p-5 space-y-4">
             <label className="block">
-              <span className="text-ink text-sm font-medium mb-1.5 block">Name</span>
+              <span className="text-white text-sm font-medium mb-1.5 block">Name</span>
               <input
                 type="text"
                 value={velaName}
                 onChange={(e) => setVelaName(e.target.value)}
                 placeholder="Vela"
-                className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+                className="w-full bg-surface2 border border-border rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-500 transition-colors"
               />
             </label>
 
             <label className="block">
-              <span className="text-ink text-sm font-medium mb-1.5 block">Persönlichkeit / Verhalten</span>
+              <span className="text-white text-sm font-medium mb-1.5 block">Persönlichkeit / Verhalten</span>
               <textarea
                 value={systemPrompt}
                 onChange={(e) => setSystemPrompt(e.target.value)}
                 placeholder="Hilfsbereit, präzise, auf Deutsch"
                 rows={4}
-                className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors resize-none leading-relaxed"
+                className="w-full bg-surface2 border border-border rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-500 transition-colors resize-none leading-relaxed"
               />
-              <span className="text-xs text-bark mt-1 block">Beschreibe, wie Vela sprechen und handeln soll.</span>
+              <span className="text-xs text-vtext3 mt-1 block">Beschreibe, wie Vela sprechen und handeln soll.</span>
             </label>
 
             <div className="flex items-center gap-3">
               <button
                 onClick={savePersonality}
                 disabled={personalitySaveStatus === 'saving'}
-                className="px-4 py-2 bg-sky text-white rounded-xl text-sm font-medium hover:bg-sky/90 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-500 transition-colors disabled:opacity-50"
               >
                 {personalitySaveStatus === 'saving' ? 'Speichern...' : personalitySaveStatus === 'saved' ? '✓ Gespeichert' : 'Speichern'}
               </button>
-              {personalitySaveStatus === 'error' && <span className="text-red-500 text-sm">Fehler beim Speichern</span>}
+              {personalitySaveStatus === 'error' && <span className="text-red-400 text-sm">Fehler beim Speichern</span>}
             </div>
           </div>
         </section>
 
         {/* Trust Level */}
         <section>
-          <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">Vertrauensstufe</h2>
-          <p className="text-earth text-sm mb-4">Wie selbststaendig darf Vela handeln?</p>
+          <h2 className="font-fraunces font-semibold text-lg text-white mb-1">Vertrauensstufe</h2>
+          <p className="text-vtext2 text-sm mb-4">Wie selbststaendig darf Vela handeln?</p>
           <div className="flex gap-2 mb-4">
             {trustOptions.map((opt) => (
               <button
@@ -367,16 +367,16 @@ export function SettingsPage() {
                 onClick={() => dispatch({ type: 'SET_TRUST', payload: opt.value })}
                 className={`flex-1 py-3 px-2 rounded-xl text-sm font-medium border transition-all ${
                   state.trustLevel === opt.value
-                    ? 'bg-sky text-white border-sky shadow-sm'
-                    : 'bg-warm text-earth border-sand hover:border-bark'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                    : 'bg-surface2 text-vtext2 border-border hover:border-border2'
                 }`}
               >
                 {opt.label}
               </button>
             ))}
           </div>
-          <div className="bg-warm border border-sand rounded-2xl px-4 py-3">
-            <p className="text-ink text-sm">
+          <div className="bg-surface border border-border rounded-2xl px-4 py-3">
+            <p className="text-white text-sm">
               {trustOptions.find((o) => o.value === state.trustLevel)?.description}
             </p>
           </div>
@@ -384,12 +384,12 @@ export function SettingsPage() {
 
         {/* KI-Modell (legacy selector kept for store state) */}
         <section>
-          <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">KI-Modell (Store)</h2>
-          <p className="text-earth text-sm mb-4">Welches Sprachmodell soll Vela intern verwenden?</p>
+          <h2 className="font-fraunces font-semibold text-lg text-white mb-1">KI-Modell (Store)</h2>
+          <p className="text-vtext2 text-sm mb-4">Welches Sprachmodell soll Vela intern verwenden?</p>
           <select
             value={state.activeModel}
             onChange={(e) => dispatch({ type: 'SET_MODEL', payload: e.target.value })}
-            className="w-full bg-warm border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors appearance-none cursor-pointer"
+            className="w-full bg-surface2 border border-border rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer"
           >
             {models.map((m) => (
               <option key={m.value} value={m.value}>{m.label}</option>
@@ -399,7 +399,7 @@ export function SettingsPage() {
 
         {/* Sprache / Language */}
         <section>
-          <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">{t('settings.language.label')}</h2>
+          <h2 className="font-fraunces font-semibold text-lg text-white mb-1">{t('settings.language.label')}</h2>
           <select
             value={language}
             onChange={async e => {
@@ -416,7 +416,7 @@ export function SettingsPage() {
                 body: JSON.stringify({ language: lang }),
               })
             }}
-            className="bg-warm border border-sand rounded-xl px-4 py-2 text-ink text-sm focus:outline-none focus:border-sky"
+            className="bg-surface2 border border-border rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
           >
             <option value="auto">{t('settings.language.auto')}</option>
             {Object.entries(SUPPORTED_LANGUAGES).map(([code, label]) => (
@@ -427,37 +427,37 @@ export function SettingsPage() {
 
         {/* Verbundene Dienste */}
         <section>
-          <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">Verbundene Dienste</h2>
-          <p className="text-earth text-sm mb-4">Welche Apps kann Vela verwenden?</p>
+          <h2 className="font-fraunces font-semibold text-lg text-white mb-1">Verbundene Dienste</h2>
+          <p className="text-vtext2 text-sm mb-4">Welche Apps kann Vela verwenden?</p>
           <div className="space-y-3">
             {emailConnections.length === 0 ? (
-              <div className="flex items-center gap-4 bg-warm border border-sand rounded-2xl px-5 py-4">
+              <div className="flex items-center gap-4 bg-surface border border-border rounded-2xl px-5 py-4">
                 <span className="text-2xl">📧</span>
                 <div className="flex-1">
-                  <p className="text-ink text-sm font-medium">E-Mail</p>
-                  <p className="text-xs text-earth mt-0.5">❌ Kein Konto verbunden</p>
+                  <p className="text-white text-sm font-medium">E-Mail</p>
+                  <p className="text-xs text-vtext2 mt-0.5">❌ Kein Konto verbunden</p>
                 </div>
                 <button
                   onClick={() => setEmailWizardOpen(true)}
-                  className="px-4 py-1.5 rounded-xl text-xs font-medium bg-sky text-white hover:bg-sky/90 transition-colors"
+                  className="px-4 py-1.5 rounded-xl text-xs font-medium bg-blue-600 text-white hover:bg-blue-500 transition-colors"
                 >
                   Verbinden
                 </button>
               </div>
             ) : (
               emailConnections.map(conn => (
-                <div key={conn.id} className="flex items-center gap-4 bg-warm border border-sand rounded-2xl px-5 py-4">
+                <div key={conn.id} className="flex items-center gap-4 bg-surface border border-border rounded-2xl px-5 py-4">
                   <span className="text-2xl">{conn.provider === 'gmail' ? '📧' : '📨'}</span>
                   <div className="flex-1">
-                    <p className="text-ink text-sm font-medium capitalize">{conn.provider}</p>
-                    <p className="text-xs text-earth mt-0.5">✅ {conn.email}</p>
+                    <p className="text-white text-sm font-medium capitalize">{conn.provider}</p>
+                    <p className="text-xs text-vtext2 mt-0.5">✅ {conn.email}</p>
                   </div>
                   <button
                     onClick={async () => {
                       await fetch(`http://localhost:3000/api/email/connections/${conn.id}`, { method: 'DELETE' })
                       setEmailConnections(prev => prev.filter(c => c.id !== conn.id))
                     }}
-                    className="px-4 py-1.5 rounded-xl text-xs font-medium bg-cream border border-sand text-earth hover:border-red-400 hover:text-red-400 transition-colors"
+                    className="px-4 py-1.5 rounded-xl text-xs font-medium bg-surface2 border border-border text-vtext2 hover:border-red-500 hover:text-red-400 transition-colors"
                   >
                     Trennen
                   </button>
@@ -466,7 +466,7 @@ export function SettingsPage() {
             )}
             <button
               onClick={() => setEmailWizardOpen(true)}
-              className="text-xs text-earth hover:text-ink transition-colors"
+              className="text-xs text-vtext3 hover:text-white transition-colors"
             >
               + Weiteres Konto verbinden
             </button>
@@ -478,54 +478,54 @@ export function SettingsPage() {
       {/* Gmail OAuth Modal */}
       {gmailModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-cream border border-sand rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4">
+          <div className="bg-surface border border-border rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-fraunces font-semibold text-lg text-ink">Gmail verbinden</h3>
+              <h3 className="font-fraunces font-semibold text-lg text-white">Gmail verbinden</h3>
               <button
                 onClick={() => setGmailModalOpen(false)}
-                className="text-earth hover:text-ink transition-colors text-xl leading-none"
+                className="text-vtext2 hover:text-white transition-colors text-xl leading-none"
               >
                 ×
               </button>
             </div>
 
-            <div className="bg-warm border border-sand rounded-xl p-4 text-sm text-earth space-y-1">
-              <p className="font-medium text-ink mb-2">Anleitung:</p>
+            <div className="bg-surface2 border border-border rounded-xl p-4 text-sm text-vtext2 space-y-1">
+              <p className="font-medium text-white mb-2">Anleitung:</p>
               <p>1. Google Cloud Console öffnen</p>
               <p>2. OAuth Client erstellen</p>
               <p>3. Refresh Token generieren</p>
             </div>
 
             <label className="block">
-              <span className="text-ink text-sm font-medium mb-1.5 block">Client ID</span>
+              <span className="text-white text-sm font-medium mb-1.5 block">Client ID</span>
               <input
                 type="text"
                 value={gmailClientId}
                 onChange={(e) => setGmailClientId(e.target.value)}
                 placeholder="123456789-abc.apps.googleusercontent.com"
-                className="w-full bg-warm border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+                className="w-full bg-surface2 border border-border rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-500 transition-colors"
               />
             </label>
 
             <label className="block">
-              <span className="text-ink text-sm font-medium mb-1.5 block">Client Secret</span>
+              <span className="text-white text-sm font-medium mb-1.5 block">Client Secret</span>
               <input
                 type="password"
                 value={gmailClientSecret}
                 onChange={(e) => setGmailClientSecret(e.target.value)}
                 placeholder="GOCSPX-..."
-                className="w-full bg-warm border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+                className="w-full bg-surface2 border border-border rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-500 transition-colors"
               />
             </label>
 
             <label className="block">
-              <span className="text-ink text-sm font-medium mb-1.5 block">Refresh Token</span>
+              <span className="text-white text-sm font-medium mb-1.5 block">Refresh Token</span>
               <input
                 type="password"
                 value={gmailRefreshToken}
                 onChange={(e) => setGmailRefreshToken(e.target.value)}
                 placeholder="1//0g..."
-                className="w-full bg-warm border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+                className="w-full bg-surface2 border border-border rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-500 transition-colors"
               />
             </label>
 
@@ -533,17 +533,17 @@ export function SettingsPage() {
               <button
                 onClick={saveGmailConfig}
                 disabled={gmailSaveStatus === 'saving' || !gmailClientId || !gmailClientSecret || !gmailRefreshToken}
-                className="px-5 py-2 bg-sky text-white rounded-xl text-sm font-medium hover:bg-sky/90 transition-colors disabled:opacity-50"
+                className="px-5 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-500 transition-colors disabled:opacity-50"
               >
                 {gmailSaveStatus === 'saving' ? 'Speichern...' : gmailSaveStatus === 'saved' ? '✓ Gespeichert' : 'Speichern'}
               </button>
               <button
                 onClick={() => setGmailModalOpen(false)}
-                className="px-5 py-2 bg-warm border border-sand rounded-xl text-ink text-sm font-medium hover:border-bark transition-colors"
+                className="px-5 py-2 bg-surface2 border border-border rounded-xl text-white text-sm font-medium hover:border-border2 transition-colors"
               >
                 Abbrechen
               </button>
-              {gmailSaveStatus === 'error' && <span className="text-red-500 text-sm">Fehler beim Speichern</span>}
+              {gmailSaveStatus === 'error' && <span className="text-red-400 text-sm">Fehler beim Speichern</span>}
             </div>
           </div>
         </div>
