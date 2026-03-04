@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import i18n, { SUPPORTED_LANGUAGES } from '../i18n'
 import { EmailConnectionWizard, type EmailConnection } from '../components/EmailConnectionWizard'
+import { FeedbackDashboard } from '../components/FeedbackDashboard'
+import { FeedbackDialog } from '../components/FeedbackButton'
 import { useVelaStore } from '../store/useVelaStore'
 import type { OperationMode } from '../store/useVelaStore'
 
@@ -36,6 +38,8 @@ export function SettingsPage() {
   const [personalitySaveStatus, setPersonalitySaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   const { t } = useTranslation()
+  const isExpert = localStorage.getItem('vela_mode') === 'cloud'
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
   // Language state
   const [language, setLanguage] = useState<string>('auto')
 

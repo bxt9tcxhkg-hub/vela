@@ -8,6 +8,7 @@ import { ActivityPage } from './pages/ActivityPage'
 import { SettingsPage } from './pages/SettingsPage'
 import OnboardingPage from './pages/OnboardingPage'
 import { MarketplacePage } from './pages/MarketplacePage'
+import { FeedbackButton } from './components/FeedbackButton'
 
 function AppRoutes() {
   const { state } = useVelaStore()
