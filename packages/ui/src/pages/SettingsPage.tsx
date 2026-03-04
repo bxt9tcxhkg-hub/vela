@@ -52,6 +52,9 @@ export function SettingsPage() {
   const [skills,         setSkills]         = React.useState<{name:string;description:string}[]>([])
   const [scheduledTasks, setScheduledTasks] = React.useState<{id:string;name:string;cron_expr:string;prompt:string;enabled:number;last_run:string|null}[]>([])
   const [newTask,        setNewTask]        = React.useState({ name: '', cronExpr: '0 9 * * *', prompt: '' })
+  const [documents,      setDocuments]      = React.useState<{id:string;name:string;size_bytes:number;created_at:string;preview:string}[]>([])
+  const [docUploading,   setDocUploading]   = React.useState(false)
+  const docInputRef = React.useRef<HTMLInputElement>(null)
   const [tokenUsage,     setTokenUsage]     = React.useState<{rows:{provider:string;model:string;total_tokens:number;requests:number}[];totalTokens:number;estimatedCostUSD:number}>()
   const { t } = useTranslation()
   const isExpert = state.uiMode === 'expert'
@@ -222,6 +225,11 @@ export function SettingsPage() {
       .then(r => r.json() as Promise<typeof diagnostics>)
       .then(d => setDiagnostics(d))
       .catch(() => {})
+    // Load documents
+    fetch('http://localhost:3000/api/documents')
+      .then(r => r.json() as Promise<{documents: typeof documents}>)
+      .then(d => setDocuments(d.documents))
+      .catch(() => {})
     // Load scheduler
     fetch('http://localhost:3000/api/scheduler')
       .then(r => r.json() as Promise<{tasks: typeof scheduledTasks}>)
@@ -257,6 +265,29 @@ export function SettingsPage() {
       body: JSON.stringify({ enabled })
     })
     setSkillConfig(prev => ({...prev, [name]: enabled}))
+  }
+
+
+
+  async function uploadDocument(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setDocUploading(true)
+    const form = new FormData()
+    form.append('file', file)
+    try {
+      const res = await fetch('http://localhost:3000/api/documents/upload', { method: 'POST', body: form })
+      const d = await res.json() as typeof documents[0]
+      setDocuments(prev => [d, ...prev])
+    } catch { /* ignore */ } finally {
+      setDocUploading(false)
+      if (e.target) e.target.value = ''
+    }
+  }
+
+  async function deleteDocument(id: string) {
+    await fetch(`http://localhost:3000/api/documents/${id}`, { method: 'DELETE' })
+    setDocuments(prev => prev.filter(d => d.id !== id))
   }
 
 
@@ -782,6 +813,42 @@ export function SettingsPage() {
         )}
 
 
+
+
+        {/* ── Dokument-Bibliothek (Laie + Experte) ────────────────── */}
+        <section>
+          <h2 className="font-fraunces font-semibold text-lg text-white mb-1">📚 Dokument-Bibliothek</h2>
+          <p className="text-vtext2 text-sm mb-4">Lade Dokumente hoch — Vela kann darin suchen und Fragen beantworten.</p>
+          <div className="bg-surface border border-border rounded-2xl p-5 space-y-4">
+            <div className="flex gap-2">
+              <button
+                onClick={() => docInputRef.current?.click()}
+                disabled={docUploading}
+                className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-500 disabled:opacity-50 transition-colors"
+              >
+                {docUploading ? '⏳ Wird hochgeladen…' : '⬆ Dokument hochladen'}
+              </button>
+              <input
+                ref={docInputRef}
+                type="file"
+                accept=".txt,.md,.csv,.json,.ts,.tsx,.js,.py,.html,.xml"
+                className="hidden"
+                onChange={e => void uploadDocument(e)}
+              />
+            </div>
+            {documents.length === 0 && <p className="text-vtext3 text-sm">Noch keine Dokumente. Lade Dateien hoch die Vela kennen soll.</p>}
+            {documents.map(doc => (
+              <div key={doc.id} className="flex items-start justify-between py-2 border-t border-border">
+                <div className="flex-1 min-w-0 mr-4">
+                  <p className="text-white text-sm font-medium">{doc.name}</p>
+                  <p className="text-vtext3 text-xs">{(doc.size_bytes / 1024).toFixed(1)} KB · {doc.created_at}</p>
+                  <p className="text-vtext3 text-xs truncate">{doc.preview}</p>
+                </div>
+                <button onClick={() => void deleteDocument(doc.id)} className="text-red-400 hover:text-red-300 text-xs flex-shrink-0">🗑</button>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* ── Expert: Scheduler / Cron ─────────────────────────────── */}
         {isExpert && (

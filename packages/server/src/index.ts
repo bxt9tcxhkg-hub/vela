@@ -13,6 +13,7 @@ import { feedbackRoutes } from './routes/feedback.js'
 import { expertRoutes } from './routes/expert.js'
 import { templateRoutes } from './routes/templates.js'
 import { schedulerRoutes } from './routes/scheduler.js'
+import { documentRoutes } from './routes/documents.js'
 import { marketplaceRoutes } from './routes/marketplace.js'
 import { oauthRoutes } from './routes/oauth.js'
 import { onboardingRoutes } from './routes/onboarding.js'
@@ -41,6 +42,7 @@ await fastify.register(feedbackRoutes)
   await fastify.register(expertRoutes)
   await fastify.register(templateRoutes)
   await fastify.register(schedulerRoutes)
+  await fastify.register(documentRoutes)
 
 // Serve UI static files in production
 if (process.env.NODE_ENV === 'production') {
