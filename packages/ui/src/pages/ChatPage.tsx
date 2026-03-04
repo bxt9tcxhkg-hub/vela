@@ -142,26 +142,26 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-cream">
+    <div className="flex flex-col h-screen bg-bg">
       {/* Header */}
-      <header className="flex items-center gap-3 px-6 py-4 border-b border-sand bg-warm shrink-0">
-        <div className="w-8 h-8 rounded-full bg-sky-light flex items-center justify-center">
-          <span className="text-sky font-fraunces font-semibold">&#10022;</span>
+      <header className="flex items-center gap-3 px-6 py-4 border-b border-border bg-surface shrink-0">
+        <div className="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-700/40 flex items-center justify-center">
+          <span className="text-blue-400 font-fraunces font-semibold">&#10022;</span>
         </div>
         <div className="flex-1">
-          <h1 className="font-fraunces font-semibold text-ink text-lg leading-none">
-            V<span className="italic text-sky">e</span>la
+          <h1 className="font-fraunces font-semibold text-white text-lg leading-none">
+            V<span className="italic text-blue-400">e</span>la
           </h1>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="pulse-green w-1.5 h-1.5 rounded-full bg-moss inline-block"></span>
-            <span className="text-xs text-earth">Online</span>
+            <span className="pulse-green w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
+            <span className="text-xs text-vtext2">Online</span>
           </div>
         </div>
         {state.messages.length > 0 && (
           <button
             onClick={handleClearMessages}
             title="Neues Gespräch"
-            className="px-3 py-1.5 rounded-xl bg-cream border border-sand text-earth text-xs hover:border-bark hover:text-ink transition-colors"
+            className="px-3 py-1.5 rounded-xl bg-surface2 border border-border text-vtext2 text-xs hover:border-border2 hover:text-white transition-colors"
           >
             🗑️ Neues Gespräch
           </button>
@@ -170,8 +170,8 @@ export function ChatPage() {
 
       {/* Session info */}
       {state.messages.length > 0 && (
-        <div className="px-6 py-1.5 bg-warm border-b border-sand/50">
-          <p className="text-xs text-bark">{state.messages.length} Nachricht{state.messages.length !== 1 ? 'en' : ''} in dieser Session</p>
+        <div className="px-6 py-1.5 bg-surface border-b border-border/50">
+          <p className="text-xs text-vtext3">{state.messages.length} Nachricht{state.messages.length !== 1 ? 'en' : ''} in dieser Session</p>
         </div>
       )}
 
@@ -181,16 +181,16 @@ export function ChatPage() {
           if (msg.skillUsed === '__error__') {
             return (
               <div key={msg.id} className="flex items-start gap-3 mb-4">
-                <div className="w-8 h-8 rounded-full bg-red-100 border border-red-200 flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="text-red-500 text-sm">!</span>
+                <div className="w-8 h-8 rounded-full bg-red-900/30 border border-red-800 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-red-400 text-sm">!</span>
                 </div>
                 <div className="flex flex-col items-start">
-                  <div className="max-w-xs lg:max-w-md bg-red-50 border border-red-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
-                    <p className="text-red-700 text-sm leading-relaxed">{msg.content}</p>
+                  <div className="max-w-xs lg:max-w-md bg-red-900/20 border border-red-800/50 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+                    <p className="text-red-400 text-sm leading-relaxed">{msg.content}</p>
                   </div>
                   <button
                     onClick={() => sendMessage(lastMessage)}
-                    className="mt-2 px-3 py-1.5 bg-sky text-white rounded-xl text-xs font-medium hover:bg-sky/90 transition-colors"
+                    className="mt-2 px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-medium hover:bg-blue-500 transition-colors"
                   >
                     Nochmal versuchen
                   </button>
@@ -229,8 +229,8 @@ export function ChatPage() {
       </div>
 
       {/* Input */}
-      <div className="px-4 md:px-8 py-4 border-t border-sand bg-warm shrink-0">
-        <div className="flex items-end gap-3 bg-cream rounded-2xl border border-sand px-4 py-3">
+      <div className="px-4 md:px-8 py-4 border-t border-border bg-surface shrink-0">
+        <div className="flex items-end gap-3 bg-surface2 rounded-2xl border border-border px-4 py-3 focus-within:border-blue-600/50">
           <textarea
             ref={textareaRef}
             value={input}
@@ -238,12 +238,12 @@ export function ChatPage() {
             onKeyDown={handleKeyDown}
             placeholder="Schreib Vela etwas..."
             rows={1}
-            className="flex-1 bg-transparent resize-none outline-none text-sm text-ink placeholder:text-bark leading-relaxed max-h-40"
+            className="flex-1 bg-transparent resize-none outline-none text-sm text-white placeholder:text-vtext3 leading-relaxed max-h-40"
           />
           <button
             onClick={() => sendMessage()}
             disabled={!input.trim()}
-            className="w-9 h-9 rounded-xl bg-sky text-white flex items-center justify-center hover:bg-sky/90 transition-colors disabled:opacity-40 shrink-0"
+            className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center hover:bg-blue-500 transition-colors disabled:opacity-40 shrink-0"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -251,7 +251,7 @@ export function ChatPage() {
             </svg>
           </button>
         </div>
-        <p className="text-xs text-bark mt-1.5 text-center">Enter zum Senden · Shift+Enter für neue Zeile</p>
+        <p className="text-xs text-vtext3 mt-1.5 text-center">Enter zum Senden · Shift+Enter für neue Zeile</p>
       </div>
     </div>
   )
