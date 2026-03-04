@@ -7,6 +7,7 @@ import { ChatPage } from './pages/ChatPage'
 import { ActivityPage } from './pages/ActivityPage'
 import { PlaygroundPage } from './pages/PlaygroundPage'
 import { WorkflowsPage } from './pages/WorkflowsPage'
+import { AgentsPage } from './pages/AgentsPage'
 import { AuthPage } from './pages/AuthPage'
 import type { AuthUser } from './store/useVelaStore'
 import { SettingsPage } from './pages/SettingsPage'
@@ -25,7 +26,8 @@ function AppRoutes() {
         <Routes>
           <Route path="/"           element={<ChatPage />} />
           <Route path="/activity"   element={<ActivityPage />} />
-          <Route path="/workflows" element={<WorkflowsPage />} />
+          <Route path="/agents" element={<AgentsPage />} />
+              <Route path="/workflows" element={<WorkflowsPage />} />
               <Route path="/playground" element={<PlaygroundPage />} />
               <Route path="/settings"   element={<SettingsPage />} />
           {isExpert && <Route path="/marketplace" element={<MarketplacePage />} />}

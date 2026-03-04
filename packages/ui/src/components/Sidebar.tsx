@@ -7,6 +7,7 @@ const navItems = [
   { to: '/activity',  label: 'Aktivität',      icon: '📊' },
   { to: '/playground', label: 'Playground',     icon: '🧪' },
   { to: '/workflows',  label: 'Workflows',      icon: '🔄' },
+  { to: '/agents',     label: 'Sub-Agents',     icon: '🤖' },
   { to: '/settings',  label: 'Einstellungen',  icon: '⚙️' },
 ]
 
