@@ -91,10 +91,11 @@ importers:
       electron-updater:
         specifier: ^6.1.0
         version: 6.8.3
-    devDependencies:
+    optionalDependencies:
       '@electron/notarize':
         specifier: ^2.5.0
         version: 2.5.0
+    devDependencies:
       concurrently:
         specifier: ^8.2.0
         version: 8.2.2
