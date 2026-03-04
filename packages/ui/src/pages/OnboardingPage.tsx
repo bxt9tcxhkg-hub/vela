@@ -13,6 +13,7 @@ type Stage =
   | 'intro'
   | 'name'
   | 'personality'
+  | 'personality-custom'
   | 'level'
   | 'mode'
   | 'mode-tiles'
@@ -49,6 +50,7 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
   const [uiMode,      setUiMode]      = useState<UIMode>('simple')
   const [personality, setPersonality] = useState<Personality>('warm')
   const [userName,    setUserName]    = useState('')
+  const [customStyle, setCustomStyle] = useState('')
   const [textVal,     setTextVal]     = useState('')
   const [showInput,   setShowInput]   = useState(false)
   const [isTyping,    setIsTyping]    = useState(false)
@@ -94,20 +96,43 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
   async function submitName() {
     const val = textVal.trim()
     if (!val) return
-    const name = val.charAt(0).toUpperCase() + val.slice(1)
-    setUserName(name)
-    setShowInput(false)
-    setTextVal('')
-    userSay(name)
-    setStage('personality')
-    await velaSay(
-      `Schön, ${name}! Eine kurze Frage noch: Wie soll ich mit dir kommunizieren?`,
-      [
-        { label: 'Warm & persönlich',  icon: '😊', value: 'warm',   sub: 'Locker, empathisch, mit Emoji' },
-        { label: 'Direkt & präzise',   icon: '⚡', value: 'direct', sub: 'Auf den Punkt, kein Schnörkel' },
-        { label: 'Förmlich & sachlich',icon: '🎩', value: 'formal', sub: 'Professionell, distanziert' },
-      ],
-    )
+
+    if (stage === 'name') {
+      const name = val.charAt(0).toUpperCase() + val.slice(1)
+      setUserName(name)
+      setShowInput(false)
+      setTextVal('')
+      userSay(name)
+      setStage('personality')
+      await velaSay(
+        `Schön, ${name}! Eine kurze Frage noch: Wie soll ich mit dir kommunizieren?`,
+        [
+          { label: 'Warm & persönlich',   icon: '😊', value: 'warm',   sub: 'Locker, empathisch, mit Emoji' },
+          { label: 'Direkt & präzise',    icon: '⚡', value: 'direct', sub: 'Auf den Punkt, kein Schnörkel' },
+          { label: 'Förmlich & sachlich', icon: '🎩', value: 'formal', sub: 'Professionell, distanziert' },
+          { label: 'Eigener Stil',        icon: '✍️', value: 'custom', sub: 'Ich beschreibe es selbst' },
+        ],
+      )
+      return
+    }
+
+    if (stage === 'personality-custom') {
+      setCustomStyle(val)
+      localStorage.setItem('vela_custom_style', val)
+      setShowInput(false)
+      setTextVal('')
+      userSay(val)
+      setStage('level')
+      await velaSay(
+        `Perfekt — ich richte mich nach: „${val}“.
+
+Noch eine wichtige Frage: Wie möchtest du Vela nutzen?`,
+        [
+          { label: 'Einsteiger', icon: '🌱', value: 'simple', sub: 'Chat, E-Mail, Suche — einfach loslegen' },
+          { label: 'Experte',    icon: '⚙️', value: 'expert', sub: 'Skills selbst bauen, Modell wählen, volle Kontrolle' },
+        ],
+      )
+    }
   }
 
   // --- chip handler ----------------------------------------------------------
@@ -183,10 +208,10 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
   }
 
   const stageLabel: Record<string, string> = {
-    intro: 'Vorstellung', name: 'Name', personality: 'Stil',
+    intro: 'Vorstellung', name: 'Name', personality: 'Stil', 'personality-custom': 'Stil (Custom)',
     level: 'Modus', 'mode-tiles': 'Infrastruktur', 'trust-chips': 'Autonomie', done: 'Fertig'
   }
-  const stageList = ['intro', 'name', 'personality', 'level', 'mode-tiles', 'trust-chips', 'done']
+  const stageList = ['intro', 'name', 'personality', 'personality-custom', 'level', 'mode-tiles', 'trust-chips', 'done']
   const currentStep = Math.max(1, stageList.indexOf(stage) + 1)
   const progress  = Math.round((stageList.indexOf(stage) / (stageList.length - 1)) * 100)
 
@@ -344,7 +369,7 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
               value={textVal}
               onChange={e => setTextVal(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') void submitName() }}
-              placeholder="Dein Name…"
+              placeholder={stage === 'personality-custom' ? 'z. B. locker, klar, ohne Floskeln…' : 'Dein Name…'}
               autoFocus
               className="flex-1 bg-gray-800 border border-gray-600 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500 transition"
             />
