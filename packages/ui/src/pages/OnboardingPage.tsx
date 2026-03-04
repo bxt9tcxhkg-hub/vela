@@ -1,261 +1,360 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
-type Tab = 'claude' | 'openai' | 'ollama'
-type TrustLevel = 'cautious' | 'balanced' | 'autonomous'
+type OperationMode = 'local' | 'cloud'
+type TrustLevel    = 'cautious' | 'balanced' | 'autonomous'
+type OnboardingStep = 'mode-select' | 'hardware-warn' | 'trust-select' | 'assistant-intro' | 'done'
 
 interface OnboardingPageProps {
-  onComplete: () => void
+  onComplete: (mode: OperationMode, trustLevel: TrustLevel) => void
 }
 
-const trustOptions: { value: TrustLevel; icon: string; label: string; description: string }[] = [
+interface HardwareStatus {
+  ramGb:       number
+  ramOk:       boolean
+  ollamaReady: boolean
+  checking:    boolean
+}
+
+// ─── Schritt 1: Moduswahl ────────────────────────────────────────────────────
+function ModeSelectStep({
+  hwStatus,
+  onSelect,
+}: {
+  hwStatus: HardwareStatus
+  onSelect: (mode: OperationMode) => void
+}) {
+  return (
+    <div className="flex flex-col items-center gap-8 w-full max-w-3xl">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-white mb-2">Wie möchtest du Vela betreiben?</h1>
+        <p className="text-gray-400">
+          Du kannst diese Entscheidung jederzeit in den Einstellungen ändern.
+        </p>
+      </div>
+
+      {hwStatus.checking && (
+        <p className="text-gray-500 text-sm animate-pulse">Hardware wird geprüft…</p>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+        {/* Karte: Lokal */}
+        <button
+          onClick={() => onSelect('local')}
+          className={`
+            flex flex-col gap-4 p-6 rounded-2xl border-2 text-left transition-all
+            ${
+              !hwStatus.checking && hwStatus.ramOk && hwStatus.ollamaReady
+                ? 'border-green-500 hover:border-green-400 hover:bg-green-950/30 bg-green-950/10'
+                : 'border-yellow-600 hover:border-yellow-500 hover:bg-yellow-950/20 bg-yellow-950/10'
+            }
+          `}
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-4xl">🔒</span>
+            <div>
+              <h2 className="text-xl font-bold text-white">Sicher & Lokal</h2>
+              <p className="text-sm text-gray-400">Empfohlen für den Einstieg</p>
+            </div>
+          </div>
+          <ul className="text-sm text-gray-300 space-y-1">
+            <li>✓ Keine Daten verlassen dein Gerät</li>
+            <li>✓ Kein API-Key erforderlich</li>
+            <li>✓ Funktioniert ohne Internet</li>
+            <li>✓ Kostenlos – unbegrenzt</li>
+          </ul>
+          <div className="text-xs text-gray-500 mt-2 border-t border-gray-700 pt-2">
+            <strong>Benötigt:</strong> Ollama + llama3.1:8b (ca. 5 GB), min. 8 GB RAM
+          </div>
+          {/* Hardware-Feedback */}
+          {!hwStatus.checking && (
+            <div className={`text-xs mt-1 font-medium ${hwStatus.ramOk && hwStatus.ollamaReady ? 'text-green-400' : 'text-yellow-400'}`}>
+              {hwStatus.ramOk && hwStatus.ollamaReady
+                ? `✓ Dein Gerät ist bereit (${hwStatus.ramGb} GB RAM, Ollama aktiv)`
+                : !hwStatus.ramOk
+                  ? `⚠ Wenig RAM (${hwStatus.ramGb} GB) – wird langsam sein`
+                  : '⚠ Ollama nicht gefunden – wird im Setup installiert'
+              }
+            </div>
+          )}
+        </button>
+
+        {/* Karte: Cloud */}
+        <button
+          onClick={() => onSelect('cloud')}
+          className="flex flex-col gap-4 p-6 rounded-2xl border-2 border-blue-600 hover:border-blue-500 hover:bg-blue-950/20 bg-blue-950/10 text-left transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-4xl">☁️</span>
+            <div>
+              <h2 className="text-xl font-bold text-white">Cloud-verbunden</h2>
+              <p className="text-sm text-gray-400">Maximale Leistung</p>
+            </div>
+          </div>
+          <ul className="text-sm text-gray-300 space-y-1">
+            <li>✓ Deutlich leistungsfähiger</li>
+            <li>✓ Funktioniert auf jedem Gerät</li>
+            <li>✓ Keine Installation erforderlich</li>
+            <li className="text-yellow-300">⚠ Daten werden an externe Server gesendet</li>
+          </ul>
+          <div className="text-xs text-gray-500 mt-2 border-t border-gray-700 pt-2">
+            <strong>Benötigt:</strong> API-Key (Claude, GPT-4o oder Gemini)
+          </div>
+          <div className="text-xs mt-1 text-blue-400 font-medium">
+            → Du entscheidest bewusst, welche Daten du teilst
+          </div>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Schritt 1b: Cloud-Risikohinweis ─────────────────────────────────────────
+function CloudWarningStep({ onConfirm, onBack }: { onConfirm: () => void; onBack: () => void }) {
+  const [understood, setUnderstood] = useState(false)
+
+  return (
+    <div className="flex flex-col items-center gap-6 w-full max-w-xl text-center">
+      <span className="text-6xl">☁️</span>
+      <h2 className="text-2xl font-bold text-white">Kurz innehalten</h2>
+      <div className="bg-yellow-900/30 border border-yellow-600 rounded-xl p-5 text-left space-y-3 text-sm text-gray-300">
+        <p><strong className="text-yellow-300">Was bedeutet Cloud-Modus?</strong></p>
+        <ul className="list-disc list-inside space-y-1">
+          <li>Deine Nachrichten werden an externe KI-Anbieter gesendet (z. B. Anthropic, OpenAI)</li>
+          <li>Diese Anbieter verarbeiten deine Anfragen auf ihren Servern</li>
+          <li>Je nach Anbieter und Tarif können Daten für Trainingsszwecke genutzt werden</li>
+          <li>Vertrauliche Informationen solltest du im Cloud-Modus mit Bedacht teilen</li>
+        </ul>
+        <p className="text-gray-400 text-xs mt-2">
+          Du kannst jederzeit in den lokalen Modus wechseln. Vela zeigt diesen Hinweis erneut an,
+          wenn du zurück zu Cloud wechselst.
+        </p>
+      </div>
+
+      <label className="flex items-center gap-3 cursor-pointer text-sm text-gray-300">
+        <input
+          type="checkbox"
+          checked={understood}
+          onChange={e => setUnderstood(e.target.checked)}
+          className="w-4 h-4 accent-blue-500"
+        />
+        Ich habe die Konsequenzen verstanden und entscheide mich bewusst für den Cloud-Modus
+      </label>
+
+      <div className="flex gap-4">
+        <button
+          onClick={onBack}
+          className="px-6 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 transition"
+        >
+          Zurück
+        </button>
+        <button
+          onClick={onConfirm}
+          disabled={!understood}
+          className="px-6 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition"
+        >
+          Cloud-Modus aktivieren
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Schritt 2: Trust Level ───────────────────────────────────────────────────
+const trustOptions = [
   {
-    value: 'cautious',
-    icon: '🛡️',
-    label: 'Vorsichtig',
+    value:       'cautious' as TrustLevel,
+    icon:        '🛡️',
+    label:       'Vorsichtig',
     description: 'Vela fragt bei jeder Aktion nach Bestätigung. Sicher, aber etwas langsamer. Ideal für den Einstieg.',
   },
   {
-    value: 'balanced',
-    icon: '⚖️',
-    label: 'Ausgewogen',
+    value:       'balanced' as TrustLevel,
+    icon:        '⚖️',
+    label:       'Ausgewogen',
     description: 'Vela entscheidet selbst bei einfachen Aufgaben, fragt bei wichtigen Aktionen nach.',
   },
   {
-    value: 'autonomous',
-    icon: '🚀',
-    label: 'Autonom',
+    value:       'autonomous' as TrustLevel,
+    icon:        '🚀',
+    label:       'Autonom',
     description: 'Vela handelt selbstständig und informiert dich im Nachhinein. Maximale Effizienz.',
   },
 ]
 
-export function OnboardingPage({ onComplete }: OnboardingPageProps) {
-  const [step, setStep] = useState(1)
-  const [tab, setTab] = useState<Tab>('claude')
-  const [claudeKey, setClaudeKey] = useState('')
-  const [openaiKey, setOpenaiKey] = useState('')
-  const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
-  const [testError, setTestError] = useState('')
-  const [trust, setTrust] = useState<TrustLevel>('cautious')
+function TrustSelectStep({
+  mode,
+  onSelect,
+  onBack,
+}: {
+  mode: OperationMode
+  onSelect: (t: TrustLevel) => void
+  onBack: () => void
+}) {
+  const [selected, setSelected] = useState<TrustLevel>('balanced')
 
-  async function testConnection() {
-    setTestStatus('loading')
-    setTestError('')
-    try {
-      // Save key first
-      const body: Record<string, string> = {}
-      if (tab === 'claude' && claudeKey) body.anthropicKey = claudeKey
-      if (tab === 'openai' && openaiKey) body.openaiKey = openaiKey
-      if (Object.keys(body).length > 0) {
-        await fetch('http://localhost:3000/api/settings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        })
+  return (
+    <div className="flex flex-col items-center gap-8 w-full max-w-2xl">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-white mb-1">Wie viel Autonomie soll Vela haben?</h2>
+        <p className="text-gray-400 text-sm">
+          {mode === 'local' ? '🔒 Lokaler Modus' : '☁️ Cloud-Modus'} – du kannst das jederzeit ändern
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-3 w-full">
+        {trustOptions.map(opt => (
+          <button
+            key={opt.value}
+            onClick={() => setSelected(opt.value)}
+            className={`flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all ${
+              selected === opt.value
+                ? 'border-blue-500 bg-blue-950/30'
+                : 'border-gray-700 hover:border-gray-500 bg-gray-900/40'
+            }`}
+          >
+            <span className="text-2xl mt-0.5">{opt.icon}</span>
+            <div>
+              <p className="font-semibold text-white">{opt.label}</p>
+              <p className="text-sm text-gray-400">{opt.description}</p>
+            </div>
+            {selected === opt.value && <span className="ml-auto text-blue-400 text-lg">✓</span>}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex gap-4">
+        <button onClick={onBack} className="px-6 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 transition">
+          Zurück
+        </button>
+        <button
+          onClick={() => onSelect(selected)}
+          className="px-8 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-500 transition"
+        >
+          Weiter
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Schritt 3: Assistent stellt sich vor ────────────────────────────────────
+function AssistantIntroStep({
+  mode,
+  trustLevel,
+  onComplete,
+}: {
+  mode:       OperationMode
+  trustLevel: TrustLevel
+  onComplete: () => void
+}) {
+  const modeLabel  = mode === 'local' ? 'lokal auf deinem Gerät' : 'über die Cloud'
+  const trustLabel = trustOptions.find(t => t.value === trustLevel)?.label ?? trustLevel
+
+  return (
+    <div className="flex flex-col items-center gap-6 w-full max-w-xl text-center">
+      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-4xl">
+        ✦
+      </div>
+      <h2 className="text-2xl font-bold text-white">Hallo! Ich bin Vela.</h2>
+      <div className="bg-gray-800/60 rounded-xl p-5 text-left text-gray-300 text-sm space-y-3">
+        <p>
+          Ich werde <strong className="text-white">{modeLabel}</strong> ausgeführt und arbeite im Modus{' '}
+          <strong className="text-white">{trustLabel}</strong>.
+        </p>
+        <p>
+          Ich kann dir bei Aufgaben helfen, Informationen suchen, Dateien verwalten und vieles mehr.
+          Dabei frage ich dich um Erlaubnis, bevor ich etwas Wichtiges tue.
+        </p>
+        <p className="text-gray-400">
+          Womit kann ich dir heute helfen? Schreib einfach los.
+        </p>
+      </div>
+      <button
+        onClick={onComplete}
+        className="px-10 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-lg hover:opacity-90 transition"
+      >
+        Vela starten →
+      </button>
+    </div>
+  )
+}
+
+// ─── Haupt-Onboarding-Komponente ─────────────────────────────────────────────
+export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
+  const [step,       setStep]       = useState<OnboardingStep>('mode-select')
+  const [mode,       setMode]       = useState<OperationMode>('local')
+  const [trustLevel, setTrustLevel] = useState<TrustLevel>('balanced')
+  const [hwStatus,   setHwStatus]   = useState<HardwareStatus>({
+    ramGb: 0, ramOk: false, ollamaReady: false, checking: true,
+  })
+
+  // Hardware-Check beim Laden
+  useEffect(() => {
+    const checkHardware = async () => {
+      try {
+        // Ollama-Dienst prüfen
+        const res = await fetch('http://localhost:11434/api/tags', { signal: AbortSignal.timeout(2000) })
+        const ollamaReady = res.ok
+
+        // RAM via navigator.deviceMemory (Schätzung, nur in sicheren Kontexten)
+        const ramGb = (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 4
+        setHwStatus({ ramGb, ramOk: ramGb >= 8, ollamaReady, checking: false })
+      } catch {
+        setHwStatus(prev => ({ ...prev, ollamaReady: false, checking: false }))
       }
-      const res = await fetch('http://localhost:3000/api/health')
-      if (res.ok) {
-        setTestStatus('success')
-      } else {
-        setTestStatus('error')
-        setTestError(`Server antwortete mit Status ${res.status}`)
-      }
-    } catch (e) {
-      setTestStatus('error')
-      setTestError(e instanceof Error ? e.message : 'Verbindung fehlgeschlagen')
+    }
+    void checkHardware()
+  }, [])
+
+  const handleModeSelect = (selectedMode: OperationMode) => {
+    setMode(selectedMode)
+    if (selectedMode === 'cloud') {
+      setStep('hardware-warn')
+    } else {
+      setStep('trust-select')
     }
   }
 
-  async function finish() {
-    // Save trust level & complete
-    localStorage.setItem('vela_trust', trust)
-    localStorage.setItem('vela_onboarded', 'true')
-    onComplete()
+  const handleCloudConfirm = () => setStep('trust-select')
+  const handleCloudBack    = () => setStep('mode-select')
+
+  const handleTrustSelect = (t: TrustLevel) => {
+    setTrustLevel(t)
+    setStep('assistant-intro')
+  }
+
+  const handleTrustBack = () => {
+    setStep(mode === 'cloud' ? 'hardware-warn' : 'mode-select')
+  }
+
+  const handleComplete = () => {
+    onComplete(mode, trustLevel)
   }
 
   return (
-    <div className="min-h-screen bg-cream flex items-center justify-center px-4">
-      {/* Step indicators */}
-      <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-2">
-        {[1, 2, 3].map((s) => (
+    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-8">
+      {/* Progress-Punkte */}
+      <div className="flex gap-2 mb-10">
+        {(['mode-select', 'trust-select', 'assistant-intro'] as const).map((s, i) => (
           <div
             key={s}
             className={`w-2 h-2 rounded-full transition-all ${
-              s === step ? 'bg-sky w-6' : s < step ? 'bg-sky/50' : 'bg-sand'
+              step === s || (step === 'hardware-warn' && i === 0)
+                ? 'bg-blue-400 w-6'
+                : ['trust-select', 'assistant-intro', 'done'].includes(step) && i === 0
+                  ? 'bg-gray-500'
+                  : step === 'assistant-intro' && i === 1
+                    ? 'bg-gray-500'
+                    : 'bg-gray-700'
             }`}
           />
         ))}
       </div>
 
-      <div className="w-full max-w-lg">
-        {/* Step 1 – Welcome */}
-        {step === 1 && (
-          <div className="text-center space-y-6 animate-fade-in">
-            <div className="font-fraunces text-7xl font-semibold text-ink tracking-tight">
-              V<span className="italic text-sky">e</span>la
-            </div>
-            <div>
-              <h1 className="font-fraunces text-3xl font-semibold text-ink mb-3">
-                Willkommen bei Vela
-              </h1>
-              <p className="text-earth text-lg">
-                Dein persönlicher KI-Agent. Richte ihn in 3 Schritten ein.
-              </p>
-            </div>
-            <button
-              onClick={() => setStep(2)}
-              className="mt-4 inline-flex items-center gap-2 px-8 py-4 bg-sky text-white font-medium rounded-2xl hover:bg-sky/90 transition-all shadow-sm text-lg"
-            >
-              Los geht's →
-            </button>
-          </div>
-        )}
-
-        {/* Step 2 – API Key */}
-        {step === 2 && (
-          <div className="space-y-6">
-            <div>
-              <h1 className="font-fraunces text-2xl font-semibold text-ink mb-1">
-                KI-Modell verbinden
-              </h1>
-              <p className="text-earth text-sm">Verbinde Vela mit deinem bevorzugten KI-Anbieter.</p>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex gap-1 bg-warm border border-sand rounded-xl p-1">
-              {(['claude', 'openai', 'ollama'] as Tab[]).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => { setTab(t); setTestStatus('idle') }}
-                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                    tab === t ? 'bg-white text-ink shadow-sm' : 'text-earth hover:text-ink'
-                  }`}
-                >
-                  {t === 'claude' ? 'Anthropic Claude' : t === 'openai' ? 'OpenAI GPT-4' : 'Lokales Modell (Ollama)'}
-                </button>
-              ))}
-            </div>
-
-            {/* Tab content */}
-            <div className="bg-warm border border-sand rounded-2xl p-5 space-y-4">
-              {tab === 'claude' && (
-                <>
-                  <label className="block">
-                    <span className="text-ink text-sm font-medium mb-1.5 block">ANTHROPIC_API_KEY</span>
-                    <input
-                      type="password"
-                      value={claudeKey}
-                      onChange={(e) => setClaudeKey(e.target.value)}
-                      placeholder="sk-ant-..."
-                      className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
-                    />
-                  </label>
-                  <a
-                    href="https://console.anthropic.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sky text-xs hover:underline"
-                  >
-                    ↗ API Key erstellen auf console.anthropic.com
-                  </a>
-                </>
-              )}
-              {tab === 'openai' && (
-                <label className="block">
-                  <span className="text-ink text-sm font-medium mb-1.5 block">OPENAI_API_KEY</span>
-                  <input
-                    type="password"
-                    value={openaiKey}
-                    onChange={(e) => setOpenaiKey(e.target.value)}
-                    placeholder="sk-..."
-                    className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
-                  />
-                </label>
-              )}
-              {tab === 'ollama' && (
-                <div className="space-y-3">
-                  <p className="text-earth text-sm">
-                    Ollama läuft lokal – kein API Key nötig. Stelle sicher, dass Ollama auf deinem System läuft.
-                  </p>
-                  <a
-                    href="https://ollama.com/download"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sky text-xs hover:underline"
-                  >
-                    ↗ Ollama installieren auf ollama.com
-                  </a>
-                </div>
-              )}
-            </div>
-
-            {/* Test connection */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={testConnection}
-                disabled={testStatus === 'loading'}
-                className="px-5 py-2.5 bg-warm border border-sand rounded-xl text-ink text-sm font-medium hover:border-bark transition-colors disabled:opacity-50"
-              >
-                {testStatus === 'loading' ? '...' : 'Test Connection'}
-              </button>
-              {testStatus === 'success' && (
-                <span className="text-green-600 text-sm font-medium">✓ Verbindung erfolgreich</span>
-              )}
-              {testStatus === 'error' && (
-                <span className="text-red-500 text-sm">✗ {testError}</span>
-              )}
-            </div>
-
-            <button
-              onClick={() => setStep(3)}
-              className="w-full py-4 bg-sky text-white font-medium rounded-2xl hover:bg-sky/90 transition-all shadow-sm"
-            >
-              Weiter →
-            </button>
-          </div>
-        )}
-
-        {/* Step 3 – Trust Level */}
-        {step === 3 && (
-          <div className="space-y-6">
-            <div>
-              <h1 className="font-fraunces text-2xl font-semibold text-ink mb-1">
-                Vertrauen konfigurieren
-              </h1>
-              <p className="text-earth text-sm">Wie selbstständig darf Vela handeln?</p>
-            </div>
-
-            <div className="space-y-3">
-              {trustOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setTrust(opt.value)}
-                  className={`w-full text-left p-5 rounded-2xl border-2 transition-all ${
-                    trust === opt.value
-                      ? 'border-sky bg-sky-light'
-                      : 'border-sand bg-warm hover:border-bark'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className="text-xl">{opt.icon}</span>
-                    <span className="font-fraunces font-semibold text-ink">{opt.label}</span>
-                    {trust === opt.value && (
-                      <span className="ml-auto text-sky text-sm font-medium">✓ Ausgewählt</span>
-                    )}
-                  </div>
-                  <p className="text-earth text-sm ml-9">{opt.description}</p>
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={finish}
-              className="w-full py-4 bg-sky text-white font-semibold rounded-2xl hover:bg-sky/90 transition-all shadow-sm text-lg font-fraunces"
-            >
-              Vela starten →
-            </button>
-          </div>
-        )}
-      </div>
+      {step === 'mode-select'    && <ModeSelectStep hwStatus={hwStatus} onSelect={handleModeSelect} />}
+      {step === 'hardware-warn'  && <CloudWarningStep onConfirm={handleCloudConfirm} onBack={handleCloudBack} />}
+      {step === 'trust-select'   && <TrustSelectStep mode={mode} onSelect={handleTrustSelect} onBack={handleTrustBack} />}
+      {step === 'assistant-intro' && <AssistantIntroStep mode={mode} trustLevel={trustLevel} onComplete={handleComplete} />}
     </div>
   )
 }

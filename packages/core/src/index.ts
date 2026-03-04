@@ -7,3 +7,14 @@ export * from './skills/runtime.js'
 export * from './ai/provider.js'
 export * from './audit/logger.js'
 export * from './types/index.js'
+
+// Dualer Betriebsmodus
+export { BackendConnector, connector } from './ai/connector.js'
+export type { OperationMode, ModeChangeEvent, ConnectorConfig } from './ai/connector.js'
+
+// Ollama Provider
+export { OllamaProvider } from './ai/ollama.js'
+
+// Permission-System
+export { PermissionManager, permissionManager, PERMISSION_LABELS } from './skills/permissions.js'
+export type { PermissionGrant, PermissionRequest } from './skills/permissions.js'
