@@ -219,8 +219,14 @@ Noch eine wichtige Frage: Wie möchtest du Vela nutzen?`,
   }
 
   const stageLabel: Record<string, string> = {
-    intro: 'Vorstellung', name: 'Name', personality: 'Stil', 'personality-custom': 'Stil (Custom)',
-    level: 'Modus', 'mode-tiles': 'Infrastruktur', 'trust-chips': 'Autonomie', done: 'Fertig'
+    intro: 'Willkommen',
+    name: 'Name',
+    personality: 'Kommunikationsstil',
+    'personality-custom': 'Eigener Kommunikationsstil',
+    level: 'Nutzerlevel',
+    'mode-tiles': 'Betriebsmodus',
+    'trust-chips': 'Autonomie',
+    done: 'Startklar',
   }
   const stageList = ['intro', 'name', 'personality', 'personality-custom', 'level', 'mode-tiles', 'trust-chips', 'done']
   const currentStep = Math.max(1, stageList.indexOf(stage) + 1)
@@ -253,6 +259,14 @@ Noch eine wichtige Frage: Wie möchtest du Vela nutzen?`,
               className="h-full rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
+          </div>
+        </div>
+
+        {/* Topic */}
+        <div className="mb-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-blue-800/70 bg-blue-950/40 px-3 py-1.5">
+            <span className="text-blue-300 text-xs font-semibold tracking-wide uppercase">Topic</span>
+            <span className="text-blue-100 text-sm font-medium">{stageLabel[stage] ?? 'Onboarding'}</span>
           </div>
         </div>
 
