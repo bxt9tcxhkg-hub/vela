@@ -1,7 +1,7 @@
 {
   "name": "@vela/ui",
   "version": "0.1.0",
-  "description": "Vela web dashboard – React frontend",
+  "description": "Vela web dashboard \u2013 React frontend",
   "private": true,
   "scripts": {
     "dev": "vite",
@@ -13,7 +13,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@vela/core": "workspace:*",
+    "@vela/core": "file:../core",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-markdown": "^10.1.0",

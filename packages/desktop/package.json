@@ -17,7 +17,7 @@
     "release": "pnpm run dist:all --publish=always"
   },
   "dependencies": {
-    "@vela/core": "workspace:*",
+    "@vela/core": "file:../core",
     "electron-updater": "^6.1.0"
   },
   "devDependencies": {
