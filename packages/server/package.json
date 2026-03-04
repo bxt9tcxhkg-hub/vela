@@ -1,7 +1,7 @@
 {
   "name": "@vela/server",
   "version": "0.1.0",
-  "description": "Vela backend server – Fastify + AI providers",
+  "description": "Vela backend server \u2013 Fastify + AI providers",
   "main": "./dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -16,7 +16,9 @@
     "@vela/core": "workspace:*",
     "dotenv": "^16.4.0",
     "fastify": "^4.27.0",
-    "zod": "^3.22.0"
+    "zod": "^3.22.0",
+    "@google/generative-ai": "^0.21.0",
+    "openai": "^4.77.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

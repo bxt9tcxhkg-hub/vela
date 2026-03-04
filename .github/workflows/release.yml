@@ -5,40 +5,91 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
-  release-desktop:
-    name: Build Desktop App
+  build:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: windows-latest
+            platform: win
+          - os: macos-latest
+            platform: mac
+          - os: ubuntu-latest
+            platform: linux
+
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
         with:
           version: 9
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
+      - name: Build all packages
         run: pnpm build
 
-      - name: Package desktop app
-        working-directory: packages/desktop
-        run: pnpm build
+      - name: Build & publish Electron app (${{ matrix.platform }})
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: |
+          cd packages/desktop
+          pnpm dist:${{ matrix.platform }} --publish=always
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: vela-${{ matrix.os }}
-          path: packages/desktop/release/
+          name: release-${{ matrix.platform }}
+          path: packages/desktop/release/**/*
+          retention-days: 7
+
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Vela v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## Vela v${{ steps.version.outputs.VERSION }}
+
+            ### Installation
+            - **Windows**: Lade `vela-setup-*.exe` herunter
+            - **macOS**: Lade `Vela-*.dmg` herunter
+            - **Linux**: Lade `Vela-*.AppImage` herunter
+
+            ### Was ist neu
+            Siehe [CHANGELOG](https://github.com/bxt9tcxhkg-hub/vela/blob/main/CHANGELOG.md)
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

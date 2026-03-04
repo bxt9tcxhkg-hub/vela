@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { setupAutoUpdater, installUpdate } from './updater.js'
 import { join } from 'path'
 import { spawn, ChildProcess } from 'child_process'
 import { existsSync } from 'fs'
@@ -56,6 +57,7 @@ function createWindow(): void {
   // Fenster erst zeigen wenn bereit (verhindert weißen Flash)
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show()
+    setupAutoUpdater(mainWindow)
   })
 
   if (isDev) {
@@ -102,6 +104,9 @@ ipcMain.handle('vela:ollama-status', async () => {
 
 // App-Version
 ipcMain.handle('vela:version', () => app.getVersion())
+
+// Update installieren
+ipcMain.handle('vela:install-update', () => installUpdate())
 
 // Externer Link öffnen
 ipcMain.handle('vela:open-external', (_event, url: string) => {

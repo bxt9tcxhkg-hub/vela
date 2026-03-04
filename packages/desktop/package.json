@@ -1,7 +1,7 @@
 {
   "name": "@vela/desktop",
   "version": "0.1.0",
-  "description": "Vela desktop app – Electron shell",
+  "description": "Vela desktop app \u2013 Electron shell",
   "private": true,
   "main": "dist/main.js",
   "scripts": {
@@ -12,7 +12,9 @@
     "dist:win": "tsc -p tsconfig.json && electron-builder --win",
     "dist:mac": "tsc -p tsconfig.json && electron-builder --mac",
     "dist:linux": "tsc -p tsconfig.json && electron-builder --linux",
-    "clean": "rm -rf dist out"
+    "clean": "rm -rf dist out",
+    "dist:all": "tsc -p tsconfig.json && electron-builder --win --mac --linux",
+    "release": "pnpm run dist:all --publish=always"
   },
   "dependencies": {
     "@vela/core": "workspace:*",
@@ -28,19 +30,56 @@
   "build": {
     "appId": "ai.vela.app",
     "productName": "Vela",
-    "copyright": "Copyright © 2026 Vela Contributors",
+    "copyright": "Copyright \u00a9 2026 Vela Contributors",
+    "asar": true,
     "directories": {
-      "output": "release/${version}"
+      "output": "release/${version}",
+      "buildResources": "resources"
     },
     "files": [
       "dist/**/*",
-      "node_modules/**/*"
+      "!dist/**/*.map",
+      "node_modules/**/*",
+      "!node_modules/**/README*",
+      "!node_modules/**/*.md"
+    ],
+    "extraResources": [
+      {
+        "from": "../ui/dist",
+        "to": "ui/dist",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../server/dist",
+        "to": "server/dist",
+        "filter": [
+          "**/*"
+        ]
+      }
     ],
     "mac": {
       "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "resources/entitlements.mac.plist",
+      "entitlementsInherit": "resources/entitlements.mac.plist",
       "target": [
-        "dmg",
-        "zip"
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ]
     },
     "win": {
@@ -51,20 +90,45 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "icon": "resources/icon.ico"
     },
     "linux": {
       "target": [
         "AppImage",
         "deb"
       ],
-      "category": "Utility"
+      "category": "Utility",
+      "icon": "resources/icon.png"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Vela"
     },
-    "publish": null
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "bxt9tcxhkg-hub",
+      "repo": "vela",
+      "releaseType": "release"
+    }
   },
   "author": {
     "name": "Vela Contributors",

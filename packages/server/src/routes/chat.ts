@@ -5,6 +5,7 @@ import OpenAI from 'openai'
 import { config } from '../config.js'
 import { webSearchSkill } from '../skills/web-search.js'
 import { chatOllama, isOllamaAvailable, listOllamaModels } from '../ai/ollama.js'
+import { chatGemini } from '../ai/gemini.js'
 
 const MessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -136,6 +137,15 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
         ],
       })
       text = response.choices[0]?.message?.content ?? ''
+    }
+
+    // ── Google Gemini ─────────────────────────────────────────────────
+    else if (provider === 'gemini' || provider === 'google') {
+      const apiKey = process.env.GEMINI_API_KEY ?? ''
+      if (!apiKey) {
+        return reply.code(400).send({ error: 'Kein Google Gemini API-Key konfiguriert.' })
+      }
+      text = await chatGemini(body.messages, apiKey, undefined, systemPrompt)
     }
 
     else {
