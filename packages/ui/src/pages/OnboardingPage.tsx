@@ -79,6 +79,11 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
     setMsgs(prev => [...prev, { role: 'user', text }])
   }
 
+  function startNewTopic() {
+    setMsgs([])
+    setShowInput(false)
+  }
+
   // --- boot ------------------------------------------------------------------
   useEffect(() => {
     if (didBootRef.current) return
@@ -103,6 +108,7 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
       setShowInput(false)
       setTextVal('')
       userSay(name)
+      startNewTopic()
       setStage('personality')
       await velaSay(
         `Schön, ${name}! Eine kurze Frage noch: Wie soll ich mit dir kommunizieren?`,
@@ -122,6 +128,7 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
       setShowInput(false)
       setTextVal('')
       userSay(val)
+      startNewTopic()
       setStage('level')
       await velaSay(
         `Perfekt — ich richte mich nach: „${val}“.
@@ -142,6 +149,7 @@ Noch eine wichtige Frage: Wie möchtest du Vela nutzen?`,
     if (stage === 'personality') {
       const p = value as Personality
       setPersonality(p)
+      startNewTopic()
       setStage('level')
       await velaSay(
         GREET[p](userName) + '\n\nNoch eine wichtige Frage: Wie möchtest du Vela nutzen?',
@@ -156,6 +164,7 @@ Noch eine wichtige Frage: Wie möchtest du Vela nutzen?`,
       const level = value as UIMode
       setUiMode(level)
       localStorage.setItem('vela_ui_mode', level)
+      startNewTopic()
       setStage('mode')
       const levelText = level === 'expert'
         ? 'Perfekt — du bekommst vollen Zugriff auf Skills, Audit-Log, Modell-Auswahl und Marketplace.'
@@ -169,6 +178,7 @@ Noch eine wichtige Frage: Wie möchtest du Vela nutzen?`,
       const t = value as TrustLevel
       setTrust(t)
       localStorage.setItem('vela_trust', t)
+      startNewTopic()
       setStage('done')
       const trustMsg = {
         cautious:   'Verstanden — ich frage immer bevor ich handle.',
@@ -194,6 +204,7 @@ Noch eine wichtige Frage: Wie möchtest du Vela nutzen?`,
 
   async function afterModeConfirmed(m: OperationMode) {
     setCloudWarn(false)
+    startNewTopic()
     setStage('trust-chips')
     const modeText = m === 'local'
       ? '🔒 Lokal — alles bleibt auf deinem Gerät.'
