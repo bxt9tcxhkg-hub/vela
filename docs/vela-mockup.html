@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=1280"/>
+<title>VELA – UI Mockup</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@300;400;500;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --cream:#faf7f2;--warm:#f2ece0;--sand:#e8dcc8;--bark:#c4a882;
+    --earth:#8b6f4e;--deep:#2d2218;--ink:#1a150e;--sky:#5b8fa8;
+    --sky-l:#d4e8f0;--moss:#6b8c5a;--gold:#c4922a;
+  }
+  html,body{width:1280px;height:820px;overflow:hidden;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);background:#e5e0d8;}
+  .window{width:1240px;height:780px;margin:20px auto;background:var(--cream);border-radius:18px;box-shadow:0 32px 80px rgba(0,0,0,.22);overflow:hidden;display:flex;flex-direction:column;}
+  .titlebar{height:40px;background:var(--deep);display:flex;align-items:center;padding:0 16px;gap:8px;flex-shrink:0;}
+  .dot{width:12px;height:12px;border-radius:50%;}
+  .dot.r{background:#ff5f56;}.dot.y{background:#ffbd2e;}.dot.g{background:#27c93f;}
+  .titlebar .ttl{flex:1;text-align:center;font-size:12px;color:rgba(255,255,255,.4);letter-spacing:.5px;}
+  .app{flex:1;display:flex;overflow:hidden;}
+  .sidebar{width:220px;background:var(--deep);display:flex;flex-direction:column;padding:20px 12px;flex-shrink:0;}
+  .sb-logo{display:flex;align-items:center;gap:10px;padding:0 6px 24px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:20px;}
+  .sb-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--sky),#2a9d8f);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .sb-name{font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:white;letter-spacing:-.3px;}
+  .sb-ver{font-size:10px;color:rgba(255,255,255,.35);margin-top:1px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;color:rgba(255,255,255,.55);font-size:13px;font-weight:500;margin-bottom:2px;}
+  .nav-item.active{background:rgba(255,255,255,.1);color:white;}
+  .nav-icon{font-size:16px;min-width:20px;}
+  .nav-badge{margin-left:auto;background:var(--sky);color:white;font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;}
+  .sb-sec{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.25);padding:12px 12px 6px;}
+  .sb-footer{margin-top:auto;border-top:1px solid rgba(255,255,255,.08);padding-top:14px;}
+  .user-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.06);}
+  .avatar{width:30px;height:30px;background:linear-gradient(135deg,var(--gold),#e76f51);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;color:white;font-weight:700;flex-shrink:0;}
+  .u-name{font-size:12px;font-weight:600;color:white;}
+  .u-role{font-size:10px;color:rgba(255,255,255,.4);}
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--cream);}
+  .chat-hdr{height:58px;background:var(--warm);border-bottom:1px solid var(--sand);display:flex;align-items:center;padding:0 24px;gap:12px;flex-shrink:0;}
+  .status-dot{width:8px;height:8px;background:#27c93f;border-radius:50%;box-shadow:0 0 0 3px rgba(39,201,63,.2);}
+  .chat-hdr h2{font-family:'Fraunces',serif;font-size:16px;font-weight:600;color:var(--ink);}
+  .model-chip{margin-left:8px;background:var(--sky-l);color:var(--sky);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:600;}
+  .hdr-actions{margin-left:auto;display:flex;gap:8px;}
+  .icon-btn{width:32px;height:32px;border-radius:8px;background:var(--sand);border:none;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--earth);}
+  .trust-bar{display:flex;align-items:center;gap:6px;padding:6px 24px;background:var(--warm);border-bottom:1px solid var(--sand);font-size:11px;color:var(--earth);flex-shrink:0;}
+  .trust-pill{background:#dcfce7;color:#15803d;border-radius:999px;padding:1px 8px;font-size:10.5px;font-weight:700;}
+  .messages{flex:1;overflow-y:auto;padding:28px 32px;display:flex;flex-direction:column;gap:20px;}
+  .date-div{display:flex;align-items:center;gap:10px;color:var(--bark);font-size:11px;font-weight:500;}
+  .date-div::before,.date-div::after{content:'';flex:1;height:1px;background:var(--sand);}
+  .msg-user{display:flex;justify-content:flex-end;}
+  .msg-user .bubble{background:var(--sky);color:white;border-radius:18px 18px 4px 18px;padding:12px 16px;max-width:68%;font-size:14px;line-height:1.55;box-shadow:0 2px 8px rgba(91,143,168,.25);}
+  .msg-vela{display:flex;gap:12px;align-items:flex-start;}
+  .vela-av{width:32px;height:32px;background:linear-gradient(135deg,var(--sky),#2a9d8f);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;margin-top:2px;}
+  .msg-vela .bubble{background:var(--warm);border:1px solid var(--sand);border-radius:4px 18px 18px 18px;padding:14px 18px;max-width:76%;font-size:14px;line-height:1.6;color:var(--ink);}
+  .msg-label{font-size:11px;font-weight:600;color:var(--sky);margin-bottom:6px;}
+  .skill-card{margin-top:12px;background:var(--cream);border:1px solid var(--sand);border-radius:10px;overflow:hidden;}
+  .sk-head{background:var(--sand);padding:7px 12px;font-size:11px;font-weight:600;color:var(--earth);display:flex;align-items:center;gap:6px;}
+  .sk-body{padding:10px 12px;}
+  .sk-row{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid var(--sand);font-size:12px;}
+  .sk-row:last-child{border-bottom:none;}
+  .sk-num{font-size:10px;font-weight:700;color:var(--sky);min-width:16px;padding-top:1px;}
+  .confirm-card{margin-top:12px;border:1.5px solid #e9c46a;border-radius:12px;background:#fffbeb;padding:12px 14px;}
+  .confirm-title{font-size:12px;font-weight:700;color:#92400e;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+  .confirm-action{font-size:12px;color:var(--ink);background:var(--cream);border:1px solid var(--sand);border-radius:8px;padding:7px 10px;margin-bottom:10px;font-family:monospace;}
+  .confirm-btns{display:flex;gap:8px;}
+  .btn-ok{background:var(--sky);color:white;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;}
+  .btn-no{background:var(--warm);color:var(--earth);border:1px solid var(--sand);border-radius:8px;padding:6px 14px;font-size:12px;}
+  .typing{display:flex;gap:12px;align-items:center;}
+  .typing-dots{display:flex;gap:5px;align-items:center;padding:12px 16px;background:var(--warm);border:1px solid var(--sand);border-radius:4px 18px 18px 18px;}
+  .typing-dots span{width:7px;height:7px;background:var(--bark);border-radius:50%;display:inline-block;}
+  .typing-dots span:nth-child(2){opacity:.6;}.typing-dots span:nth-child(3){opacity:.3;}
+  .input-area{padding:16px 24px 20px;background:var(--cream);flex-shrink:0;}
+  .input-box{background:var(--warm);border:1.5px solid var(--sky);border-radius:16px;display:flex;align-items:flex-end;gap:10px;padding:10px 10px 10px 16px;box-shadow:0 0 0 3px rgba(91,143,168,.1);}
+  .input-box textarea{flex:1;background:transparent;border:none;outline:none;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);resize:none;line-height:1.5;min-height:22px;}
+  .input-actions{display:flex;gap:6px;align-items:center;}
+  .attach-btn{width:32px;height:32px;border-radius:8px;background:transparent;border:none;font-size:16px;color:var(--earth);display:flex;align-items:center;justify-content:center;}
+  .send-btn{width:36px;height:36px;border-radius:10px;background:var(--sky);border:none;font-size:16px;color:white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(91,143,168,.35);}
+  .quick-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .q-chip{background:var(--warm);border:1px solid var(--sand);border-radius:999px;padding:4px 12px;font-size:12px;color:var(--earth);font-weight:500;}
+</style>
+</head>
+<body>
+<div class="window">
+  <div class="titlebar">
+    <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+    <div class="ttl">Vela — AI Agent</div>
+  </div>
+  <div class="app">
+    <div class="sidebar">
+      <div class="sb-logo">
+        <div class="sb-icon">🤖</div>
+        <div><div class="sb-name">Vela</div><div class="sb-ver">v0.1.0 · Lokal</div></div>
+      </div>
+      <div class="nav-item active"><span class="nav-icon">💬</span>Chat<span class="nav-badge">2</span></div>
+      <div class="nav-item"><span class="nav-icon">📋</span>Aktivitäten</div>
+      <div class="nav-item"><span class="nav-icon">⚙️</span>Einstellungen</div>
+      <div class="sb-sec">Skills</div>
+      <div class="nav-item"><span class="nav-icon">🔍</span>Web-Suche</div>
+      <div class="nav-item"><span class="nav-icon">📧</span>E-Mail</div>
+      <div class="nav-item"><span class="nav-icon">📁</span>Dateien</div>
+      <div class="sb-footer">
+        <div class="user-row">
+          <div class="avatar">M</div>
+          <div><div class="u-name">Muhi</div><div class="u-role">Ausgewogen · Lokal</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="main">
+      <div class="chat-hdr">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="status-dot"></div>
+          <h2>Vela</h2>
+          <span class="model-chip">Ollama · Llama 3</span>
+        </div>
+        <div class="hdr-actions">
+          <button class="icon-btn">🔍</button>
+          <button class="icon-btn">⋯</button>
+        </div>
+      </div>
+      <div class="trust-bar">🛡️ Vertrauensstufe: <span class="trust-pill">Ausgewogen</span>&nbsp;·&nbsp;Vela fragt bei wichtigen Aktionen nach.</div>
+      <div class="messages">
+        <div class="date-div">Heute</div>
+        <div class="msg-user"><div class="bubble">Kannst du mir die neuesten Nachrichten zu "KI-Regulierung EU" suchen?</div></div>
+        <div class="msg-vela">
+          <div class="vela-av">🤖</div>
+          <div class="bubble">
+            <div class="msg-label">Vela · gerade eben</div>
+            Ich suche das für dich. Einen Moment …
+            <div class="skill-card">
+              <div class="sk-head">🔍 web-search · abgeschlossen</div>
+              <div class="sk-body">
+                <div class="sk-row"><span class="sk-num">1</span><span><strong>EU AI Act tritt in Kraft</strong> — Neue Pflichten für Hochrisiko-Systeme ab Aug. 2025 (heise.de)</span></div>
+                <div class="sk-row"><span class="sk-num">2</span><span><strong>KI-Haftungsrichtlinie beschlossen</strong> — Schadensersatz bei fehlerhafter KI möglich (spiegel.de)</span></div>
+                <div class="sk-row"><span class="sk-num">3</span><span><strong>GPAI-Verhaltenskodex veröffentlicht</strong> — Freiwillige Selbstverpflichtung für LLM-Anbieter (eu.eu)</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="msg-user"><div class="bubble">Schick mir den ersten Artikel per Mail an muhi@example.com</div></div>
+        <div class="msg-vela">
+          <div class="vela-av">🤖</div>
+          <div class="bubble">
+            <div class="msg-label">Vela · gerade eben</div>
+            Kurze Bestätigung bevor ich das absende:
+            <div class="confirm-card">
+              <div class="confirm-title">⚠️ Aktion erfordert Bestätigung</div>
+              <div class="confirm-action">email.send → muhi@example.com · Betreff: "EU AI Act tritt in Kraft"</div>
+              <div class="confirm-btns">
+                <button class="btn-ok">✓ Ja, senden</button>
+                <button class="btn-no">Abbrechen</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="typing">
+          <div class="vela-av">🤖</div>
+          <div class="typing-dots"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+      <div class="input-area">
+        <div class="input-box">
+          <textarea rows="1" placeholder="Schreib Vela eine Aufgabe …">Was soll ich als nächstes tun?</textarea>
+          <div class="input-actions">
+            <button class="attach-btn">📎</button>
+            <button class="send-btn">↑</button>
+          </div>
+        </div>
+        <div class="quick-actions">
+          <div class="q-chip">📧 Mails abrufen</div>
+          <div class="q-chip">🔍 Web-Suche</div>
+          <div class="q-chip">📁 Datei öffnen</div>
+          <div class="q-chip">📋 Aufgabenliste</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

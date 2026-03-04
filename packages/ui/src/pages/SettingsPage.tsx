@@ -50,6 +50,13 @@ export function SettingsPage() {
   const [modeChanging, setModeChanging] = useState(false)
   const [cloudWarning, setCloudWarning] = useState(false)
   const [cloudConfirmed, setCloudConfirmed] = useState(false)
+  // Gmail Modal state
+  const [gmailModalOpen, setGmailModalOpen] = useState(false)
+  const [gmailClientId, setGmailClientId] = useState('')
+  const [gmailClientSecret, setGmailClientSecret] = useState('')
+  const [gmailRefreshToken, setGmailRefreshToken] = useState('')
+  const [gmailSaveStatus, setGmailSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [hasGmailConfig, setHasGmailConfig] = useState(false)
 
   async function handleModeChange(newMode: OperationMode) {
     if (newMode === operationMode) return

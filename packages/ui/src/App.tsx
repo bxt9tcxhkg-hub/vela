@@ -12,7 +12,7 @@ import { FeedbackButton } from './components/FeedbackButton'
 
 function AppRoutes() {
   const { state } = useVelaStore()
-  const isExpert = state.mode === 'expert' || localStorage.getItem('vela_mode') === 'cloud'
+  const isExpert = state.operationMode === 'cloud' || localStorage.getItem('vela_mode') === 'cloud'
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-950 pb-16 md:pb-0">
