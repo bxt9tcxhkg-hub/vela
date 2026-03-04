@@ -1,6 +1,6 @@
 // EmailConnectionWizard – erweiterbare Email-Provider-Verbindung
 // Gmail zuerst, Architektur offen für Outlook, IMAP etc.
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 
 export interface EmailConnection {
   id:         string
@@ -22,6 +22,10 @@ const PROVIDER_LABELS: Record<string, { icon: string; label: string; available: 
 }
 
 export function EmailConnectionWizard({ onClose, onConnected }: Props) {
+  // Cleanup polling on unmount
+  React.useEffect(() => {
+    return () => { if (pollRef.current) clearInterval(pollRef.current) }
+  }, [])
   const [step,          setStep]          = useState<WizardStep>('provider-select')
   const [provider,      setProvider]      = useState<string>('gmail')
   const [authUrl,       setAuthUrl]       = useState<string>('')
@@ -51,10 +55,38 @@ export function EmailConnectionWizard({ onClose, onConnected }: Props) {
     }
   }, [])
 
+  // Polling: prüft nach OAuth-Popup ob ein neues Konto verbunden wurde
+  const pollRef = React.useRef<ReturnType<typeof setInterval> | null>(null)
+
+  function stopPolling() {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+  }
+
+  function startPolling(knownIds: Set<string>) {
+    stopPolling()
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch('http://localhost:3000/api/email/connections')
+        const data = await res.json() as { connections: EmailConnection[] }
+        const newConn = data.connections.find(c => !knownIds.has(c.id))
+        if (newConn) {
+          stopPolling()
+          setStep('success')
+          setTimeout(() => { onConnected(newConn); onClose() }, 1500)
+        }
+      } catch { /* ignore */ }
+    }, 2000)
+  }
+
   async function startGmailOAuth() {
     setLoading(true)
     setError('')
     try {
+      // Snapshot der bestehenden Verbindungen
+      const existingRes = await fetch('http://localhost:3000/api/email/connections')
+      const existingData = await existingRes.json() as { connections: EmailConnection[] }
+      const knownIds = new Set(existingData.connections.map(c => c.id))
+
       const res = await fetch('http://localhost:3000/api/email/gmail/auth-url')
       const data = await res.json() as { url?: string; error?: string; hint?: string }
 
@@ -66,6 +98,8 @@ export function EmailConnectionWizard({ onClose, onConnected }: Props) {
       setAuthUrl(data.url)
       setStep('gmail-waiting')
       window.open(data.url, '_blank', 'width=600,height=700')
+      // Polling starten um neue Verbindung zu erkennen
+      startPolling(knownIds)
     } catch {
       setError('Server nicht erreichbar.')
     } finally {
