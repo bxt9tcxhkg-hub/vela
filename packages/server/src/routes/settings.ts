@@ -114,3 +114,6 @@ export async function settingsRoutes(fastify: FastifyInstance) {
       .send(body)
   })
 }
+
+// Snapshot routes (T-09)
+import { listSnapshots, createSnapshot } from '../utils/config-snapshot.js'

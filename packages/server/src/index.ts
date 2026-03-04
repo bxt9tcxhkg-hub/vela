@@ -9,6 +9,8 @@ import { skillRoutes } from './routes/skills.js'
 import { onboardingRoutes } from './routes/onboarding.js'
 import { zoneRoutes } from './routes/zones.js'
 import { messengerRoutes } from './routes/messenger.js'
+import { statusRoutes } from './routes/status.js'
+import { initSnapshotSchedule } from './utils/config-snapshot.js'
 
 const fastify = Fastify({
   logger: config.nodeEnv === 'development',
@@ -25,6 +27,7 @@ await fastify.register(skillRoutes)
 await fastify.register(onboardingRoutes)
 await fastify.register(zoneRoutes)
 await fastify.register(messengerRoutes)
+await fastify.register(statusRoutes)
 
 // Serve UI static files in production
 if (process.env.NODE_ENV === 'production') {
@@ -45,6 +48,7 @@ if (process.env.NODE_ENV === 'production') {
 try {
   await fastify.listen({ port: config.port, host: config.host })
   console.log(`✦ Vela server running on http://${config.host}:${config.port}`)
+  initSnapshotSchedule()
 } catch (err) {
   fastify.log.error(err)
   process.exit(1)

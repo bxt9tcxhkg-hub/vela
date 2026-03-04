@@ -5,6 +5,7 @@ import { chatGroq } from '../ai/groq.js'
 import { buildSystemPrompt, type UserLevel, type BackendMode } from '../prompts/builder.js'
 import { analyzeContext, getContextWarningMessage } from '../utils/context.js'
 import { loadCheckpoint, hasActiveCheckpoint, getCheckpointResumeMessage } from '../utils/checkpoint.js'
+import { checkDiskStorage, checkRamUsage, getStorageWarningMessage } from '../utils/storage-monitor.js'
 import { config } from '../config.js'
 import { webSearchSkill } from '../skills/web-search.js'
 
@@ -132,10 +133,16 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
       }
     }
 
+    // T-04: Speicherplatz-Warnung
+    const diskStatus = checkDiskStorage(userLevel)
+    const ramStatus  = checkRamUsage()
+    const storageWarning = getStorageWarningMessage(diskStatus, ramStatus, userLevel)
+
     // Prepend notices to text if present
     let finalText = text
     if (checkpointNotice) finalText = checkpointNotice + '\n\n' + finalText
     if (ctxWarning) finalText = finalText + '\n\n---\n' + ctxWarning
+    if (storageWarning) finalText = finalText + '\n\n⚠️ ' + storageWarning
 
     // Build activity entry
     let activity: ActivityEntry
