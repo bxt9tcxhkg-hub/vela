@@ -14,6 +14,7 @@ const API_BASE = 'http://localhost:3000'
 
 export function ChatPage() {
   const { state, dispatch } = useVelaStore()
+  const { uiMode } = state
   const [input, setInput] = useState('')
   const [streamingId, setStreamingId] = useState<string | null>(null)
   const [streamingContent, setStreamingContent] = useState('')
