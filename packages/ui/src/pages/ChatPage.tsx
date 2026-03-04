@@ -21,6 +21,10 @@ export function ChatPage() {
   const [lastMessage, setLastMessage] = useState<string>('')
   const [focusMode, setFocusMode] = useState(false)
   const [exportMenuOpen, setExportMenuOpen] = useState(false)
+  const [templatesOpen,  setTemplatesOpen]  = useState(false)
+  const [templates, setTemplates] = useState<{id:string;name:string;prompt:string;category:string}[]>([])
+  const [isListening, setIsListening] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [permissionRequest, setPermissionRequest] = useState<{
     skillName: string
     permission: string
@@ -86,6 +90,49 @@ export function ChatPage() {
       void Notification.requestPermission()
     }
   }
+
+
+  // Load templates
+  React.useEffect(() => {
+    fetch('http://localhost:3000/api/templates')
+      .then(r => r.json() as Promise<{templates: typeof templates}>)
+      .then(d => setTemplates(d.templates))
+      .catch(() => {})
+  }, [])
+
+  function applyTemplate(prompt: string) {
+    setInput(prompt)
+    setTemplatesOpen(false)
+    textareaRef.current?.focus()
+  }
+
+  function startVoice() {
+    type SpeechRecognitionCtor = new () => { lang: string; interimResults: boolean; onstart: () => void; onend: () => void; onresult: (e: { results: { 0: { transcript: string } }[] }) => void; start: () => void }
+    const w = window as unknown as Record<string, unknown>
+    const SpeechRecognition = (w['SpeechRecognition'] ?? w['webkitSpeechRecognition']) as SpeechRecognitionCtor | undefined
+    if (!SpeechRecognition) { alert('Spracheingabe wird von diesem Browser nicht unterstützt.'); return }
+    const recognition = new SpeechRecognition()
+    recognition.lang = 'de-DE'
+    recognition.interimResults = false
+    recognition.onstart = () => setIsListening(true)
+    recognition.onend   = () => setIsListening(false)
+    recognition.onresult = (e: { results: { 0: { transcript: string } }[] }) => {
+      setInput(prev => prev + e.results[0][0].transcript)
+      textareaRef.current?.focus()
+    }
+    recognition.start()
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const text = await file.text()
+    const preview = text.length > 3000 ? text.slice(0, 3000) + '\n\n[Datei gekürzt…]' : text
+    setInput(`Hier ist der Inhalt von "${file.name}":\n\n${preview}\n\nMeine Frage dazu: `)
+    textareaRef.current?.focus()
+    if (e.target) e.target.value = ''
+  }
+
 
   async function sendMessage(retryText?: string) {
     const text = retryText ?? input.trim()
@@ -308,7 +355,51 @@ export function ChatPage() {
             </svg>
           </button>
         </div>
-        <p className="text-xs text-vtext3 mt-1.5 text-center">Enter zum Senden · Shift+Enter für neue Zeile</p>
+        {/* Quick actions row */}
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          <button
+            onClick={() => setTemplatesOpen(o => !o)}
+            className="flex items-center gap-1 text-xs text-vtext3 hover:text-white border border-border hover:border-border2 rounded-lg px-2 py-1 transition-colors"
+          >
+            ⚡ Templates
+          </button>
+          <button
+            onClick={startVoice}
+            className={`flex items-center gap-1 text-xs border rounded-lg px-2 py-1 transition-colors ${isListening ? 'text-red-400 border-red-700 animate-pulse' : 'text-vtext3 hover:text-white border-border hover:border-border2'}`}
+          >
+            🎤 {isListening ? 'Hört zu…' : 'Sprache'}
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-1 text-xs text-vtext3 hover:text-white border border-border hover:border-border2 rounded-lg px-2 py-1 transition-colors"
+          >
+            📎 Datei
+          </button>
+          <input ref={fileInputRef} type="file" accept=".txt,.md,.csv,.json,.ts,.tsx,.js,.py" className="hidden" onChange={e => void handleFileUpload(e)} />
+          <span className="ml-auto text-xs text-vtext3">Enter senden · Shift+Enter Zeilenumbruch</span>
+        </div>
+
+        {/* Template panel */}
+        {templatesOpen && (
+          <div className="mt-2 bg-surface border border-border rounded-xl overflow-hidden shadow-xl">
+            <div className="px-3 py-2 border-b border-border flex items-center justify-between">
+              <span className="text-xs font-medium text-white">Prompt-Templates</span>
+              <button onClick={() => setTemplatesOpen(false)} className="text-vtext3 hover:text-white text-sm">✕</button>
+            </div>
+            <div className="max-h-48 overflow-y-auto">
+              {templates.map(tpl => (
+                <button
+                  key={tpl.id}
+                  onClick={() => applyTemplate(tpl.prompt)}
+                  className="w-full text-left px-3 py-2 hover:bg-surface2 border-b border-border last:border-0 transition-colors"
+                >
+                  <p className="text-white text-xs font-medium">{tpl.name}</p>
+                  <p className="text-vtext3 text-xs truncate">{tpl.prompt}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
