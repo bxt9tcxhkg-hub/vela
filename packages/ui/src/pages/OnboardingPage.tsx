@@ -243,8 +243,7 @@ Noch eine wichtige Frage: Wie möchtest du Vela nutzen?`,
                 ✦
               </div>
               <div>
-                <h1 className="text-white font-semibold text-base leading-tight">Vela einrichten</h1>
-                <p className="text-gray-400 text-sm">{stageLabel[stage] ?? ''}</p>
+                <h1 className="text-white font-bold text-xl leading-tight">Vela einrichten</h1>
               </div>
             </div>
             <div className="text-right">
