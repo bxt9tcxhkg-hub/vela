@@ -8,7 +8,8 @@ if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true })
 
 const DB_PATH = join(DATA_DIR, 'vela.db')
 
-export const db = new Database(DB_PATH)
+import type { Database as BetterDatabase } from 'better-sqlite3'
+export const db: BetterDatabase = new Database(DB_PATH) as unknown as BetterDatabase
 
 // WAL-Modus für bessere Performance
 db.pragma('journal_mode = WAL')
@@ -58,3 +59,15 @@ db.exec(`
 console.log(`[DB] SQLite geöffnet: ${DB_PATH}`)
 
 export default db
+
+// Permissions-Tabelle nachrüsten (idempotent)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS permissions (
+    permission_type TEXT PRIMARY KEY,
+    skill_id        TEXT NOT NULL,
+    granted_at      TEXT NOT NULL,
+    granted_by      TEXT NOT NULL DEFAULT 'user',
+    risk_level      TEXT NOT NULL DEFAULT 'low',
+    description     TEXT NOT NULL DEFAULT ''
+  );
+`)

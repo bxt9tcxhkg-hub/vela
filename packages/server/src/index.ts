@@ -1,3 +1,5 @@
+import { permissionManager } from '@vela/core'
+import { SQLitePermissionStore } from './db/permission_store.js'
 import { conversationRoutes } from './routes/conversations.js'
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
@@ -7,6 +9,10 @@ import { config } from './config.js'
 import { chatRoutes } from './routes/chat.js'
 import { settingsRoutes } from './routes/settings.js'
 import { skillRoutes } from './routes/skills.js'
+
+// Permission-Persistenz: SQLite-Store VOR allem anderen initialisieren
+// Lädt bereits erteilte Grants aus der Datenbank – Nutzer muss nicht neu bestätigen
+permissionManager.setStore(new SQLitePermissionStore())
 
 const fastify = Fastify({
   logger: config.nodeEnv === 'development',
@@ -18,7 +24,7 @@ await fastify.register(cors, {
 })
 
 await fastify.register(chatRoutes)
-  await fastify.register(conversationRoutes)
+await fastify.register(conversationRoutes)
 await fastify.register(settingsRoutes)
 await fastify.register(skillRoutes)
 

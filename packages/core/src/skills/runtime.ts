@@ -3,7 +3,6 @@
 
 import type { SkillManifest, PlannedAction } from '../types/index.js'
 import { permissionManager } from './permissions.js'
-import { auditLogger } from '../audit/logger.js'
 import { AuditLogger } from '../audit/logger.js'
 
 export interface SkillExecutor {

@@ -16,5 +16,5 @@ export type { OperationMode, ModeChangeEvent, ConnectorConfig } from './ai/conne
 export { OllamaProvider } from './ai/ollama.js'
 
 // Permission-System
-export { PermissionManager, permissionManager, PERMISSION_LABELS } from './skills/permissions.js'
-export type { PermissionGrant, PermissionRequest } from './skills/permissions.js'
+export { PermissionManager, permissionManager, PERMISSION_LABELS, InMemoryPermissionStore } from './skills/permissions.js'
+export type { PermissionStore, PermissionGrant, PermissionRequest } from './skills/permissions.js'

@@ -13,8 +13,8 @@ export interface PermissionGrant {
 export interface PermissionRequest {
   skill:       string
   permission:  SkillPermission
-  reason:      string          // Was der Skill damit tut, in Laien-Sprache
-  riskNote?:   string | undefined   // Optionaler Risikohinweis
+  reason:      string
+  riskNote?:   string | undefined
 }
 
 // Lesbare Beschreibungen pro Permission
@@ -30,30 +30,59 @@ export const PERMISSION_LABELS: Record<SkillPermission, { label: string; descrip
   'shell':          { label: 'Befehle ausführen',     description: 'Vela kann Terminal-Befehle auf deinem System ausführen.',               risk: 'high'   },
 }
 
+// ─── Persistence Adapter Interface ───────────────────────────────────────────
+// Entkoppelt den PermissionManager von better-sqlite3 (läuft auch in UI/Tests)
+export interface PermissionStore {
+  load(): PermissionGrant[]
+  save(grant: PermissionGrant): void
+  remove(permission: SkillPermission): void
+}
+
+// No-op Store (Default, für UI / Tests ohne DB)
+export class InMemoryPermissionStore implements PermissionStore {
+  load(): PermissionGrant[] { return [] }
+  save(_grant: PermissionGrant): void { /* no-op */ }
+  remove(_permission: SkillPermission): void { /* no-op */ }
+}
+
 export class PermissionManager {
   private granted = new Map<SkillPermission, PermissionGrant>()
   private onRequest?: (req: PermissionRequest) => Promise<boolean>
+  private store: PermissionStore
+
+  constructor(store: PermissionStore = new InMemoryPermissionStore()) {
+    this.store = store
+    // Beim Initialisieren aus Store laden (synchron)
+    const saved = this.store.load()
+    for (const grant of saved) {
+      this.granted.set(grant.permission, grant)
+    }
+  }
 
   /**
    * Callback wird aufgerufen wenn ein Skill eine neue Permission anfordert.
-   * Muss vom UI registriert werden (zeigt Bestätigungs-Dialog).
    */
+
+  /**
+   * Wechselt den Persistence-Store und lädt bestehende Grants.
+   * Aufruf vor setRequestHandler empfohlen (Server-Startup).
+   */
+  setStore(store: PermissionStore): void {
+    this.store = store
+    const saved = store.load()
+    for (const grant of saved) {
+      this.granted.set(grant.permission, grant)
+    }
+  }
+
   setRequestHandler(handler: (req: PermissionRequest) => Promise<boolean>): void {
     this.onRequest = handler
   }
 
-  /**
-   * Prüft ob eine Permission bereits erteilt wurde.
-   */
   has(permission: SkillPermission): boolean {
     return this.granted.has(permission)
   }
 
-  /**
-   * Fordert eine Permission an. Wenn noch nicht erteilt, wird der
-   * Request-Handler aufgerufen (UI zeigt Dialog).
-   * Gibt true zurück wenn die Permission jetzt vorliegt.
-   */
   async request(req: PermissionRequest): Promise<boolean> {
     if (this.has(req.permission)) return true
 
@@ -71,35 +100,29 @@ export class PermissionManager {
     })
 
     if (confirmed) {
-      this.granted.set(req.permission, {
+      const grant: PermissionGrant = {
         permission:  req.permission,
         grantedAt:   new Date(),
         grantedBy:   'user',
         description: label.description,
-      })
+      }
+      this.granted.set(req.permission, grant)
+      this.store.save(grant)
     }
 
     return confirmed
   }
 
-  /**
-   * Widerruft eine Permission. Der nächste Skill-Aufruf muss
-   * sie erneut anfragen.
-   */
   revoke(permission: SkillPermission): void {
     this.granted.delete(permission)
+    this.store.remove(permission)
   }
 
-  /**
-   * Gibt alle erteilten Permissions zurück (für Einstellungsseite).
-   */
   listGranted(): PermissionGrant[] {
     return Array.from(this.granted.values())
   }
 
-  /**
-   * Serialisierung für persistente Speicherung (SQLite / localStorage).
-   */
+  /** @deprecated Nutze store.load() / store.save() direkt */
   serialize(): Record<string, PermissionGrant> {
     const out: Record<string, PermissionGrant> = {}
     for (const [k, v] of this.granted.entries()) {
@@ -108,6 +131,7 @@ export class PermissionManager {
     return out
   }
 
+  /** @deprecated Nutze constructor(store) für Persistenz */
   restore(data: Record<string, PermissionGrant>): void {
     for (const [k, v] of Object.entries(data)) {
       this.granted.set(k as SkillPermission, {
@@ -118,5 +142,5 @@ export class PermissionManager {
   }
 }
 
-// Singleton
+// Singleton mit InMemory-Store (wird vom Server mit SQLitePermissionStore überschrieben)
 export const permissionManager = new PermissionManager()
