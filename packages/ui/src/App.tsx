@@ -5,6 +5,8 @@ import type { OperationMode } from './store/useVelaStore'
 import { Sidebar } from './components/Sidebar'
 import { ChatPage } from './pages/ChatPage'
 import { ActivityPage } from './pages/ActivityPage'
+import { PlaygroundPage } from './pages/PlaygroundPage'
+import { WorkflowsPage } from './pages/WorkflowsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import OnboardingPage from './pages/OnboardingPage'
 import { MarketplacePage } from './pages/MarketplacePage'
@@ -21,7 +23,9 @@ function AppRoutes() {
         <Routes>
           <Route path="/"           element={<ChatPage />} />
           <Route path="/activity"   element={<ActivityPage />} />
-          <Route path="/settings"   element={<SettingsPage />} />
+          <Route path="/workflows" element={<WorkflowsPage />} />
+              <Route path="/playground" element={<PlaygroundPage />} />
+              <Route path="/settings"   element={<SettingsPage />} />
           {isExpert && <Route path="/marketplace" element={<MarketplacePage />} />}
         </Routes>
       </main>

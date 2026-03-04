@@ -5,6 +5,8 @@ import { UIModeToggle } from './UIModeToggle'
 const navItems = [
   { to: '/',           label: 'Chat',          icon: '💬' },
   { to: '/activity',  label: 'Aktivität',      icon: '📊' },
+  { to: '/playground', label: 'Playground',     icon: '🧪' },
+  { to: '/workflows',  label: 'Workflows',      icon: '🔄' },
   { to: '/settings',  label: 'Einstellungen',  icon: '⚙️' },
 ]
 
