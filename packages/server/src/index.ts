@@ -35,7 +35,7 @@ const fastify = Fastify({
 
 await fastify.register(cors, {
   origin: process.env.NODE_ENV === 'production' ? true : ['http://localhost:5173', 'http://localhost:5174'],
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 })
 
 await fastify.register(chatRoutes)
