@@ -5,6 +5,7 @@ import OpenAI from 'openai'
 import { config } from '../config.js'
 import { webSearchSkill } from '../skills/web-search.js'
 import { chatOllama, isOllamaAvailable, listOllamaModels } from '../ai/ollama.js'
+import { AgentPlanner } from '@vela/core'
 import { chatGemini } from '../ai/gemini.js'
 
 const MessageSchema = z.object({
@@ -76,6 +77,20 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
     const searchQuery  = needsWebSearch(userText)
     let   systemPrompt = getSystemPrompt()
     let   skillUsed: string | null = null
+
+    // ── Agent Planner: Skills erkennen ──────────────────────────────────
+    const planner = new AgentPlanner({ verbose: true })
+    const coreMessages = body.messages.map((m, i) => ({
+      id: String(i), role: m.role as 'user' | 'assistant', content: m.content, timestamp: new Date(),
+    }))
+    const plannedActions = await planner.plan(userText, coreMessages)
+    const highRiskAction = plannedActions.find(a => a.riskLevel === 'high' && a.requiresConfirmation)
+    if (highRiskAction) {
+      return reply.code(202).send({
+        requiresConfirmation: true,
+        action: { id: highRiskAction.id, description: highRiskAction.description, riskLevel: highRiskAction.riskLevel },
+      })
+    }
 
     // Web-Search-Kontext einfügen
     if (searchQuery) {

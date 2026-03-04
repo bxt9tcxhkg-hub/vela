@@ -1,5 +1,6 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
+import { UIModeToggle } from './UIModeToggle'
 
 const navItems = [
   { to: '/', label: 'Chat', icon: '💬' },
@@ -43,6 +44,11 @@ export function Sidebar() {
             </NavLink>
           ))}
         </nav>
+
+        {/* UI Mode Toggle */}
+        <div className="px-4 pb-3">
+          <UIModeToggle />
+        </div>
 
         {/* Footer */}
         <div className="px-6 pb-6">

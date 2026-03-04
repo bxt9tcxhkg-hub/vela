@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer } from 'react'
 
 export type OperationMode = 'local' | 'cloud'
+export type UIMode = 'simple' | 'expert'
 
 export interface Message {
   id: string
@@ -32,6 +33,7 @@ export interface VelaState {
   trustLevel: 'cautious' | 'balanced' | 'autonomous'
   activeModel: string
   operationMode: OperationMode
+  uiMode:             UIMode
   pendingConfirmation: ConfirmAction | null
   isTyping: boolean
 }
@@ -43,6 +45,7 @@ type Action =
   | { type: 'SET_TRUST'; payload: VelaState['trustLevel'] }
   | { type: 'SET_MODEL'; payload: string }
   | { type: 'SET_MODE'; payload: OperationMode }
+  | { type: 'SET_UI_MODE'; payload: UIMode }
   | { type: 'SET_CONFIRMATION'; payload: ConfirmAction | null }
   | { type: 'ADD_ACTIVITY'; payload: Activity }
   | { type: 'CLEAR_MESSAGES' }
@@ -65,6 +68,7 @@ const initialState: VelaState = {
   trustLevel:         'balanced',
   activeModel:        'ollama',
   operationMode:      'local',
+  uiMode:             'simple',
   pendingConfirmation: null,
   isTyping:           false,
   ...loadPersistedState(),
@@ -92,6 +96,9 @@ function reducer(state: VelaState, action: Action): VelaState {
     case 'SET_MODE':
       localStorage.setItem('vela_mode', action.payload)
       return { ...state, operationMode: action.payload }
+    case 'SET_UI_MODE':
+      localStorage.setItem('vela_ui_mode', action.payload)
+      return { ...state, uiMode: action.payload }
     case 'SET_CONFIRMATION':
       return { ...state, pendingConfirmation: action.payload }
     case 'ADD_ACTIVITY':

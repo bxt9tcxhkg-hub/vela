@@ -1,6 +1,8 @@
 import React, { useRef, useEffect, useState, KeyboardEvent } from 'react'
 import { ChatMessage, TypingIndicator } from '../components/ChatMessage'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import PermissionDialog from '../components/PermissionDialog'
+import { PERMISSION_LABELS } from '@vela/core'
 import { useVelaStore } from '../store/useVelaStore'
 import type { Message, ConfirmAction } from '../store/useVelaStore'
 
@@ -16,6 +18,15 @@ export function ChatPage() {
   const [streamingId, setStreamingId] = useState<string | null>(null)
   const [streamingContent, setStreamingContent] = useState('')
   const [lastMessage, setLastMessage] = useState<string>('')
+  const [permissionRequest, setPermissionRequest] = useState<{
+    skillName: string
+    permission: string
+    label: string
+    description: string
+    reason: string
+    risk: 'low' | 'medium' | 'high'
+    resolve: (granted: boolean) => void
+  } | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -189,7 +200,20 @@ export function ChatPage() {
           return <ChatMessage key={msg.id} message={msg} />
         })}
 
-        {state.pendingConfirmation && (
+        {permissionRequest && (
+        <PermissionDialog
+          skillName={permissionRequest.skillName}
+          permission={permissionRequest.permission}
+          label={permissionRequest.label}
+          description={permissionRequest.description}
+          reason={permissionRequest.reason}
+          risk={permissionRequest.risk}
+          onConfirm={() => permissionRequest.resolve(true)}
+          onDeny={() => permissionRequest.resolve(false)}
+        />
+      )}
+
+      {state.pendingConfirmation && (
           <ConfirmDialog action={state.pendingConfirmation} />
         )}
 
