@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { EmailConnectionWizard, type EmailConnection } from '../components/EmailConnectionWizard'
 import { useVelaStore } from '../store/useVelaStore'
 import type { OperationMode } from '../store/useVelaStore'
 
@@ -32,13 +33,9 @@ export function SettingsPage() {
   const [systemPrompt, setSystemPrompt] = useState('Hilfsbereit, präzise, auf Deutsch')
   const [personalitySaveStatus, setPersonalitySaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
-  // Gmail state
-  const [hasGmailConfig, setHasGmailConfig] = useState(false)
-  const [gmailModalOpen, setGmailModalOpen] = useState(false)
-  const [gmailClientId, setGmailClientId] = useState('')
-  const [gmailClientSecret, setGmailClientSecret] = useState('')
-  const [gmailRefreshToken, setGmailRefreshToken] = useState('')
-  const [gmailSaveStatus, setGmailSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  // Email connections state
+  const [emailConnections, setEmailConnections] = useState<EmailConnection[]>([])
+  const [emailWizardOpen, setEmailWizardOpen] = useState(false)
   const operationMode = state.operationMode
   const [modeChanging, setModeChanging] = useState(false)
   const [cloudWarning, setCloudWarning] = useState(false)
@@ -70,6 +67,13 @@ export function SettingsPage() {
         if (data.velaName) setVelaName(data.velaName)
         if (data.systemPrompt) setSystemPrompt(data.systemPrompt)
         setHasGmailConfig(data.hasGmailConfig ?? false)
+      })
+      .catch(() => {})
+    // Email-Verbindungen laden
+    fetch('http://localhost:3000/api/email/connections')
+      .then(r => r.json())
+      .then((data: { connections: EmailConnection[] }) => {
+        setEmailConnections(data.connections ?? [])
       })
       .catch(() => {})
   }, [])
@@ -372,26 +376,46 @@ export function SettingsPage() {
           <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">Verbundene Dienste</h2>
           <p className="text-earth text-sm mb-4">Welche Apps kann Vela verwenden?</p>
           <div className="space-y-3">
-            {/* Gmail */}
-            <div className="flex items-center gap-4 bg-warm border border-sand rounded-2xl px-5 py-4">
-              <span className="text-2xl">📧</span>
-              <div className="flex-1">
-                <p className="text-ink text-sm font-medium">Gmail</p>
-                <p className="text-xs text-earth mt-0.5">
-                  {hasGmailConfig ? '✅ Verbunden' : '❌ Nicht verbunden'}
-                </p>
+            {emailConnections.length === 0 ? (
+              <div className="flex items-center gap-4 bg-warm border border-sand rounded-2xl px-5 py-4">
+                <span className="text-2xl">📧</span>
+                <div className="flex-1">
+                  <p className="text-ink text-sm font-medium">E-Mail</p>
+                  <p className="text-xs text-earth mt-0.5">❌ Kein Konto verbunden</p>
+                </div>
+                <button
+                  onClick={() => setEmailWizardOpen(true)}
+                  className="px-4 py-1.5 rounded-xl text-xs font-medium bg-sky text-white hover:bg-sky/90 transition-colors"
+                >
+                  Verbinden
+                </button>
               </div>
-              <button
-                onClick={() => setGmailModalOpen(true)}
-                className={`px-4 py-1.5 rounded-xl text-xs font-medium transition-colors ${
-                  hasGmailConfig
-                    ? 'bg-cream border border-sand text-earth hover:border-bark'
-                    : 'bg-sky text-white hover:bg-sky/90'
-                }`}
-              >
-                {hasGmailConfig ? 'Neu verbinden' : 'Gmail verbinden'}
-              </button>
-            </div>
+            ) : (
+              emailConnections.map(conn => (
+                <div key={conn.id} className="flex items-center gap-4 bg-warm border border-sand rounded-2xl px-5 py-4">
+                  <span className="text-2xl">{conn.provider === 'gmail' ? '📧' : '📨'}</span>
+                  <div className="flex-1">
+                    <p className="text-ink text-sm font-medium capitalize">{conn.provider}</p>
+                    <p className="text-xs text-earth mt-0.5">✅ {conn.email}</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      await fetch(`http://localhost:3000/api/email/connections/${conn.id}`, { method: 'DELETE' })
+                      setEmailConnections(prev => prev.filter(c => c.id !== conn.id))
+                    }}
+                    className="px-4 py-1.5 rounded-xl text-xs font-medium bg-cream border border-sand text-earth hover:border-red-400 hover:text-red-400 transition-colors"
+                  >
+                    Trennen
+                  </button>
+                </div>
+              ))
+            )}
+            <button
+              onClick={() => setEmailWizardOpen(true)}
+              className="text-xs text-earth hover:text-ink transition-colors"
+            >
+              + Weiteres Konto verbinden
+            </button>
           </div>
         </section>
 

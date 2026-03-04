@@ -9,6 +9,7 @@ import { config } from './config.js'
 import { chatRoutes } from './routes/chat.js'
 import { settingsRoutes } from './routes/settings.js'
 import { skillRoutes } from './routes/skills.js'
+import { oauthRoutes } from './routes/oauth.js'
 import { onboardingRoutes } from './routes/onboarding.js'
 
 // Permission-Persistenz: SQLite-Store VOR allem anderen initialisieren
@@ -29,6 +30,7 @@ await fastify.register(conversationRoutes)
 await fastify.register(settingsRoutes)
 await fastify.register(skillRoutes)
 await fastify.register(onboardingRoutes)
+await fastify.register(oauthRoutes)
 
 // Serve UI static files in production
 if (process.env.NODE_ENV === 'production') {
