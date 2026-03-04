@@ -50,6 +50,8 @@ export function SettingsPage() {
   const [webhookName,    setWebhookName]    = React.useState('')
   const [newWebhookSecret, setNewWebhookSecret] = React.useState('')
   const [skills,         setSkills]         = React.useState<{name:string;description:string}[]>([])
+  const [scheduledTasks, setScheduledTasks] = React.useState<{id:string;name:string;cron_expr:string;prompt:string;enabled:number;last_run:string|null}[]>([])
+  const [newTask,        setNewTask]        = React.useState({ name: '', cronExpr: '0 9 * * *', prompt: '' })
   const [tokenUsage,     setTokenUsage]     = React.useState<{rows:{provider:string;model:string;total_tokens:number;requests:number}[];totalTokens:number;estimatedCostUSD:number}>()
   const { t } = useTranslation()
   const isExpert = state.uiMode === 'expert'
@@ -220,6 +222,11 @@ export function SettingsPage() {
       .then(r => r.json() as Promise<typeof diagnostics>)
       .then(d => setDiagnostics(d))
       .catch(() => {})
+    // Load scheduler
+    fetch('http://localhost:3000/api/scheduler')
+      .then(r => r.json() as Promise<{tasks: typeof scheduledTasks}>)
+      .then(d => setScheduledTasks(d.tasks))
+      .catch(() => {})
     // Load token usage
     fetch('http://localhost:3000/api/token-usage')
       .then(r => r.json() as Promise<typeof tokenUsage>)
@@ -250,6 +257,33 @@ export function SettingsPage() {
       body: JSON.stringify({ enabled })
     })
     setSkillConfig(prev => ({...prev, [name]: enabled}))
+  }
+
+
+  async function createTask() {
+    if (!newTask.name || !newTask.prompt) return
+    const res = await fetch('http://localhost:3000/api/scheduler', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(newTask)
+    })
+    if (res.ok) {
+      const d = await res.json() as typeof scheduledTasks[0]
+      setScheduledTasks(prev => [d, ...prev])
+      setNewTask({ name: '', cronExpr: '0 9 * * *', prompt: '' })
+    }
+  }
+
+  async function toggleTask(id: string, enabled: boolean) {
+    await fetch(`http://localhost:3000/api/scheduler/${id}`, {
+      method: 'PATCH', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ enabled })
+    })
+    setScheduledTasks(prev => prev.map(t => t.id === id ? {...t, enabled: enabled ? 1 : 0} : t))
+  }
+
+  async function deleteTask(id: string) {
+    await fetch(`http://localhost:3000/api/scheduler/${id}`, { method: 'DELETE' })
+    setScheduledTasks(prev => prev.filter(t => t.id !== id))
   }
 
   async function createWebhook() {
@@ -747,6 +781,59 @@ export function SettingsPage() {
         </section>
         )}
 
+
+
+        {/* ── Expert: Scheduler / Cron ─────────────────────────────── */}
+        {isExpert && (
+        <section>
+          <h2 className="font-fraunces font-semibold text-lg text-white mb-1">⏰ Scheduler</h2>
+          <p className="text-vtext2 text-sm mb-4">Vela führt Aufgaben automatisch zu festgelegten Zeiten aus.</p>
+          <div className="bg-surface border border-border rounded-2xl p-5 space-y-4">
+            {/* New task form */}
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <input type="text" placeholder="Name (z.B. Tages-Brief)" value={newTask.name}
+                  onChange={e => setNewTask(p => ({...p, name: e.target.value}))}
+                  className="bg-surface2 border border-border rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-blue-500" />
+                <input type="text" placeholder="Cron (z.B. 0 9 * * *)" value={newTask.cronExpr}
+                  onChange={e => setNewTask(p => ({...p, cronExpr: e.target.value}))}
+                  className="bg-surface2 border border-border rounded-xl px-3 py-2 text-white text-sm font-mono outline-none focus:border-blue-500" />
+              </div>
+              <div className="flex gap-2">
+                <input type="text" placeholder="Aufgabe (z.B. Fasse meine Mails zusammen)" value={newTask.prompt}
+                  onChange={e => setNewTask(p => ({...p, prompt: e.target.value}))}
+                  className="flex-1 bg-surface2 border border-border rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-blue-500" />
+                <button onClick={() => void createTask()} disabled={!newTask.name || !newTask.prompt}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-500 disabled:opacity-40 transition-colors">
+                  + Hinzufügen
+                </button>
+              </div>
+              <p className="text-vtext3 text-xs">Cron-Format: Minute Stunde Tag Monat Wochentag · z.B. <code className="text-blue-400">0 9 * * 1-5</code> = Mo-Fr um 09:00</p>
+            </div>
+            {/* Task list */}
+            {scheduledTasks.length === 0 && <p className="text-vtext3 text-sm">Keine Aufgaben.</p>}
+            {scheduledTasks.map(t => (
+              <div key={t.id} className="flex items-start justify-between py-2 border-t border-border">
+                <div className="flex-1 min-w-0 mr-4">
+                  <p className="text-white text-sm font-medium">{t.name}</p>
+                  <p className="text-vtext3 text-xs font-mono">{t.cron_expr}</p>
+                  <p className="text-vtext3 text-xs truncate">{t.prompt}</p>
+                  {t.last_run && <p className="text-vtext3 text-xs">Zuletzt: {t.last_run}</p>}
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <input type="checkbox" checked={t.enabled === 1}
+                      onChange={e => void toggleTask(t.id, e.target.checked)}
+                      className="accent-blue-500" />
+                    <span className="text-xs text-vtext2">{t.enabled ? 'An' : 'Aus'}</span>
+                  </label>
+                  <button onClick={() => void deleteTask(t.id)} className="text-red-400 hover:text-red-300 text-xs">✕</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+        )}
 
         {/* ── Expert: Token-Kosten ─────────────────────────────────── */}
         {isExpert && tokenUsage && (
