@@ -12,25 +12,25 @@
 
 | Feature | Ziel | Status |
 |---|---|---|
-| Chat-Export (MD / TXT) | Gespräch als Datei speichern | ⬜ 👤🔧 |
-| Fokus-Modus | Ablenkungsfreier Chat ohne Sidebar | ⬜ 👤 |
-| Prompt-Templates | Gespeicherte Aufgaben mit 1 Klick | ⬜ 👤🔧 |
-| Browser-Benachrichtigungen | Vela meldet sich wenn fertig | ⬜ 👤 |
-| Datei hochladen | Dokument an Vela schicken | ⬜ 👤🔧 |
-| Spracheingabe | Sprechen statt tippen | ⬜ 👤 |
-| Token-Kosten tracken | Kosten pro Session anzeigen | ⬜ 🔧 |
+| Chat-Export (MD / TXT) | Gespräch als Datei speichern | ✅ 👤🔧 |
+| Fokus-Modus | Ablenkungsfreier Chat ohne Sidebar | ✅ 👤 |
+| Prompt-Templates | Gespeicherte Aufgaben mit 1 Klick | ✅ 👤🔧 |
+| Browser-Benachrichtigungen | Vela meldet sich wenn fertig | ✅ 👤 |
+| Datei hochladen | Dokument an Vela schicken | ✅ 👤🔧 |
+| Spracheingabe | Sprechen statt tippen | ✅ 👤 |
+| Token-Kosten tracken | Kosten pro Session anzeigen | ✅ 🔧 |
 
 ## Sprint 4 – Mittel (nächste Wochen)
 
 | Feature | Ziel | Status |
 |---|---|---|
-| Scheduler / Cron | Aufgaben zeitgesteuert ausführen | ⬜ 🔧 |
-| Proaktive Notifications | Vela meldet sich von selbst | ⬜ 👤🔧 |
-| RAG – Dokumente hochladen | Eigene Wissensbasis | ⬜ 👤🔧 |
-| Prompt-Playground | Prompts live testen | ⬜ 🔧 |
-| Workflows | Skills in Abfolge automatisieren | ⬜ 🔧 |
+| Scheduler / Cron | Aufgaben zeitgesteuert ausführen | ✅ 🔧 |
+| Proaktive Notifications | Vela meldet sich von selbst | ✅ 👤🔧 |
+| RAG – Dokumente hochladen | Eigene Wissensbasis | ✅ 👤🔧 |
+| Prompt-Playground | Prompts live testen | ✅ 🔧 |
+| Workflows | Skills in Abfolge automatisieren | ✅ 🔧 |
 | Weitere Trigger (E-Mail/Discord) | Externe Events starten Aufgaben | ⬜ 🔧 |
-| Long-Term Memory (Vector DB) | Gedächtnis über Sessions hinaus | ⬜ 🔧 |
+| Long-Term Memory (Vector DB) | Gedächtnis über Sessions hinaus | ✅ 🔧 |
 
 ## Sprint 5 – Fortgeschritten
 
