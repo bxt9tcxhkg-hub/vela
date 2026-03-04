@@ -187,6 +187,7 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
     level: 'Modus', 'mode-tiles': 'Infrastruktur', 'trust-chips': 'Autonomie', done: 'Fertig'
   }
   const stageList = ['intro', 'name', 'personality', 'level', 'mode-tiles', 'trust-chips', 'done']
+  const currentStep = Math.max(1, stageList.indexOf(stage) + 1)
   const progress  = Math.round((stageList.indexOf(stage) / (stageList.length - 1)) * 100)
 
   return (
@@ -194,22 +195,28 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
       <div className="w-full max-w-xl flex flex-col" style={{ height: '640px' }}>
 
         {/* Header */}
-        <div className="flex items-center gap-3 mb-4 px-1">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-lg flex-shrink-0 shadow-lg">
-            ✦
-          </div>
-          <div className="flex-1">
-            <h1 className="text-white font-bold text-sm leading-tight">Vela einrichten</h1>
-            <p className="text-gray-500 text-xs">{stageLabel[stage] ?? ''}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-600 text-xs">{progress}%</span>
-            <div className="w-24 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
-                style={{ width: `${progress}%` }}
-              />
+        <div className="mb-4 rounded-2xl border border-gray-800/80 bg-gray-900/70 backdrop-blur px-4 py-3 shadow-sm">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-lg shadow-lg">
+                ✦
+              </div>
+              <div>
+                <h1 className="text-white font-semibold text-base leading-tight">Vela einrichten</h1>
+                <p className="text-gray-400 text-sm">{stageLabel[stage] ?? ''}</p>
+              </div>
             </div>
+            <div className="text-right">
+              <p className="text-blue-300 text-sm font-semibold">Schritt {currentStep}/{stageList.length}</p>
+              <p className="text-gray-500 text-xs">{progress}% abgeschlossen</p>
+            </div>
+          </div>
+
+          <div className="h-2.5 w-full rounded-full bg-gray-800 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
           </div>
         </div>
 
