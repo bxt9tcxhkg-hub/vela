@@ -56,6 +56,7 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
   const [cloudWarn,   setCloudWarn]   = useState(false)
   const [cloudConfirm,setCloudConfirm]= useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const didBootRef = useRef(false)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -78,6 +79,9 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
 
   // --- boot ------------------------------------------------------------------
   useEffect(() => {
+    if (didBootRef.current) return
+    didBootRef.current = true
+
     void (async () => {
       await velaSay('Hallo! Ich bin Vela — dein persönlicher KI-Assistent. 👋')
       await velaSay('Ich helfe dir bei E-Mails, Recherche, Dateien und Automationen.')
