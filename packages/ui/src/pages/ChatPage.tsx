@@ -19,6 +19,8 @@ export function ChatPage() {
   const [streamingId, setStreamingId] = useState<string | null>(null)
   const [streamingContent, setStreamingContent] = useState('')
   const [lastMessage, setLastMessage] = useState<string>('')
+  const [focusMode, setFocusMode] = useState(false)
+  const [exportMenuOpen, setExportMenuOpen] = useState(false)
   const [permissionRequest, setPermissionRequest] = useState<{
     skillName: string
     permission: string
@@ -52,6 +54,36 @@ export function ChatPage() {
   function handleClearMessages() {
     if (window.confirm('Gespräch zurücksetzen? Alle Nachrichten werden gelöscht.')) {
       dispatch({ type: 'CLEAR_MESSAGES' })
+    }
+  }
+
+
+  function exportChat(format: 'md' | 'txt') {
+    const msgs = state.messages
+    if (!msgs.length) return
+    const lines = msgs.map((m) => {
+      const who = m.role === 'user' ? '**Du**' : '**Vela**'
+      const time = new Date(m.timestamp).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+      return format === 'md'
+        ? `### ${who} _(${time})_\n${m.content}\n`
+        : `[${time}] ${m.role === 'user' ? 'Du' : 'Vela'}: ${m.content}\n`
+    })
+    const header = format === 'md'
+      ? `# Vela Gespräch\n_Exportiert: ${new Date().toLocaleDateString('de-DE')}_\n\n---\n\n`
+      : `Vela Gespräch – ${new Date().toLocaleDateString('de-DE')}\n${'─'.repeat(40)}\n\n`
+    const blob = new Blob([header + lines.join('\n')], { type: 'text/plain' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href = url
+    a.download = `vela-chat-${Date.now()}.${format}`
+    a.click()
+    URL.revokeObjectURL(url)
+    setExportMenuOpen(false)
+  }
+
+  function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+      void Notification.requestPermission()
     }
   }
 
@@ -142,9 +174,9 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-bg">
+    <div className="flex flex-col h-screen bg-bg" onClick={() => setExportMenuOpen(false)}>
       {/* Header */}
-      <header className="flex items-center gap-3 px-6 py-4 border-b border-border bg-surface shrink-0">
+      <header className={`flex items-center gap-3 px-6 py-4 border-b border-border bg-surface shrink-0 transition-all ${focusMode ? 'opacity-0 pointer-events-none h-0 py-0 border-0 overflow-hidden' : ''}`}>
         <div className="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-700/40 flex items-center justify-center">
           <span className="text-blue-400 font-fraunces font-semibold">&#10022;</span>
         </div>
@@ -157,13 +189,38 @@ export function ChatPage() {
             <span className="text-xs text-vtext2">Online</span>
           </div>
         </div>
+        {/* Export menu */}
+        {state.messages.length > 0 && (
+          <div className="relative">
+            <button
+              onClick={() => setExportMenuOpen(o => !o)}
+              title="Chat exportieren"
+              className="px-3 py-1.5 rounded-xl bg-surface2 border border-border text-vtext2 text-xs hover:border-border2 hover:text-white transition-colors"
+            >
+              ⬇ Export
+            </button>
+            {exportMenuOpen && (
+              <div className="absolute right-0 top-9 bg-surface border border-border rounded-xl shadow-xl z-20 min-w-32 overflow-hidden">
+                <button onClick={() => exportChat('md')} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-surface2 transition-colors">Markdown (.md)</button>
+                <button onClick={() => exportChat('txt')} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-surface2 transition-colors">Text (.txt)</button>
+              </div>
+            )}
+          </div>
+        )}
+        <button
+          onClick={() => { setFocusMode(f => !f); requestNotificationPermission() }}
+          title={focusMode ? 'Fokus-Modus verlassen' : 'Fokus-Modus'}
+          className="px-3 py-1.5 rounded-xl bg-surface2 border border-border text-vtext2 text-xs hover:border-border2 hover:text-white transition-colors"
+        >
+          {focusMode ? '⊠ Fokus' : '⊡ Fokus'}
+        </button>
         {state.messages.length > 0 && (
           <button
             onClick={handleClearMessages}
             title="Neues Gespräch"
             className="px-3 py-1.5 rounded-xl bg-surface2 border border-border text-vtext2 text-xs hover:border-border2 hover:text-white transition-colors"
           >
-            🗑️ Neues Gespräch
+            🗑️
           </button>
         )}
       </header>
