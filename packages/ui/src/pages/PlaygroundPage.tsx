@@ -121,15 +121,17 @@ export function PlaygroundPage() {
             <label className="text-white text-sm font-medium block mb-1.5">System-Prompt</label>
             <textarea value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)}
               rows={2}
-              className="w-full bg-surface2 border border-border rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-500 resize-none" />
+              style={{ color: '#f9fafb', caretColor: '#f9fafb', WebkitTextFillColor: '#f9fafb' }}
+              className="w-full bg-surface2 border border-border rounded-xl px-4 py-3 text-vtext text-sm placeholder:text-vtext3 outline-none focus:border-blue-500 resize-none" />
           </div>
 
           <div>
             <label className="text-white text-sm font-medium block mb-1.5">Benutzer-Prompt</label>
             <textarea value={userPrompt} onChange={e => setUserPrompt(e.target.value)}
               rows={4} placeholder="Schreib einen Test-Prompt…"
+              style={{ color: '#f9fafb', caretColor: '#f9fafb', WebkitTextFillColor: '#f9fafb' }}
               onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) void runPrompt() }}
-              className="w-full bg-surface2 border border-border rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-500 resize-none" />
+              className="w-full bg-surface2 border border-border rounded-xl px-4 py-3 text-vtext text-sm placeholder:text-vtext3 outline-none focus:border-blue-500 resize-none" />
             <p className="text-vtext3 text-xs mt-1">Ctrl+Enter zum Ausführen</p>
           </div>
 
