@@ -80,7 +80,33 @@ async function cmdStatus() {
 }
 
 // ─── Models-Befehl ────────────────────────────────────────────────────────────
-async function cmdModels() {
+// Bekannte Gemini-Modelle (Stand 2026)
+const GEMINI_MODELS = [
+  { name: 'gemini-2.0-flash',        desc: 'Schnell & kosteneffizient' },
+  { name: 'gemini-2.0-flash-lite',   desc: 'Noch schneller, kleiner' },
+  { name: 'gemini-1.5-pro',          desc: 'Leistungsstark, großes Kontextfenster (2M Token)' },
+  { name: 'gemini-1.5-flash',        desc: 'Balance aus Geschwindigkeit und Qualität' },
+]
+
+async function cmdModels(provider = 'ollama') {
+  if (provider === 'gemini' || provider === 'google') {
+    println(`${c.bold}Verfügbare Gemini-Modelle${c.reset}`)
+    println('─'.repeat(40))
+    const hasKey = !!process.env.GEMINI_API_KEY
+    if (!hasKey) {
+      println(`  ${c.yellow}⚠ GEMINI_API_KEY nicht gesetzt${c.reset}`)
+      println(`  ${c.gray}  export GEMINI_API_KEY=dein_key${c.reset}`)
+      println()
+    }
+    for (const m of GEMINI_MODELS) {
+      println(`  ${c.green}•${c.reset} ${c.bold}${m.name}${c.reset}  ${c.gray}${m.desc}${c.reset}`)
+    }
+    println()
+    println(`  ${c.gray}Verwendung: vela chat --provider gemini --model gemini-2.0-flash${c.reset}`)
+    println()
+    return
+  }
+
   println(`${c.bold}Verfügbare Ollama-Modelle${c.reset}`)
   println('─'.repeat(40))
   const ollama = await checkOllama()
@@ -106,6 +132,23 @@ async function cmdChat(provider: string) {
   if (!serverOk) {
     println(`${c.red}✗ Vela Server nicht erreichbar (${SERVER_URL})${c.reset}`)
     println(`${c.gray}  Starten mit: cd packages/server && pnpm dev${c.reset}`)
+    process.exit(1)
+  }
+
+  // API-Key-Prüfung für Cloud-Provider (early exit mit hilfreichem Hinweis)
+  const KEY_MAP: Record<string, string> = {
+    claude:    'ANTHROPIC_API_KEY',
+    anthropic: 'ANTHROPIC_API_KEY',
+    openai:    'OPENAI_API_KEY',
+    gpt:       'OPENAI_API_KEY',
+    gemini:    'GEMINI_API_KEY',
+    google:    'GEMINI_API_KEY',
+  }
+  const requiredKey = KEY_MAP[provider]
+  if (requiredKey && !process.env[requiredKey]) {
+    println(`${c.red}✗ ${requiredKey} nicht gesetzt${c.reset}`)
+    println(`${c.gray}  export ${requiredKey}=dein_api_key${c.reset}`)
+    println()
     process.exit(1)
   }
 
@@ -186,6 +229,9 @@ function printHelp() {
   println(`${c.bold}Umgebungsvariablen${c.reset}`)
   println('─'.repeat(40))
   println(`  ${c.yellow}VELA_SERVER${c.reset}       Server-URL (Standard: http://localhost:3000)`)
+  println(`  ${c.yellow}ANTHROPIC_API_KEY${c.reset} Claude-API-Key (vela chat --provider claude)`)
+  println(`  ${c.yellow}OPENAI_API_KEY${c.reset}    OpenAI-API-Key (vela chat --provider openai)`)
+  println(`  ${c.yellow}GEMINI_API_KEY${c.reset}    Google Gemini API-Key (vela chat --provider gemini)`)
   println(`  ${c.yellow}OLLAMA_BASE_URL${c.reset}   Ollama-URL (Standard: http://localhost:11434)`)
   println()
 }
@@ -219,7 +265,7 @@ async function main() {
       await cmdStatus()
       break
     case 'models':
-      await cmdModels()
+      await cmdModels(values.provider as string)
       break
     default:
       println(`${c.red}Unbekannter Befehl: ${cmd}${c.reset}`)
