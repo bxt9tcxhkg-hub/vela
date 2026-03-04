@@ -146,6 +146,13 @@ Noch eine wichtige Frage: Wie möchtest du Vela nutzen?`,
     userSay(label)
 
     if (stage === 'personality') {
+      if (value === 'custom') {
+        setStage('personality-custom')
+        startNewTopic()
+        await velaSay('Super — beschreibe kurz deinen gewünschten Stil (z. B. "locker, humorvoll, kurz und klar").', undefined, true)
+        return
+      }
+
       const p = value as Personality
       setPersonality(p)
       startNewTopic()
@@ -184,7 +191,9 @@ Noch eine wichtige Frage: Wie möchtest du Vela nutzen?`,
         balanced:   'Gut — ich entscheide selbst bei einfachen Dingen.',
         autonomous: 'Alles klar — ich handle selbstständig und berichte danach.',
       }[t]
-      await velaSay(`${trustMsg}\n\nAlles eingerichtet${userName ? `, ${userName}` : ''}! Ich bin bereit. 🚀`)
+      await velaSay(`${trustMsg}
+
+Alles eingerichtet${userName ? `, ${userName}` : ''}! Ich bin bereit. 🚀`)
       setCanFinish(true)
     }
   }
