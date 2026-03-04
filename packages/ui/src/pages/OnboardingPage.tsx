@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 
 type OperationMode = 'local' | 'cloud'
 type TrustLevel    = 'cautious' | 'balanced' | 'autonomous'
-type OnboardingStep = 'mode-select' | 'hardware-warn' | 'trust-select' | 'assistant-intro' | 'done'
+type OnboardingStep = 'mode-select' | 'hardware-warn' | 'trust-select' | 'assistant-chat' | 'done'
 
 interface OnboardingPageProps {
   onComplete: (mode: OperationMode, trustLevel: TrustLevel) => void
@@ -13,6 +13,11 @@ interface HardwareStatus {
   ramOk:       boolean
   ollamaReady: boolean
   checking:    boolean
+}
+
+interface ChatMessage {
+  role:    'user' | 'assistant'
+  content: string
 }
 
 // ─── Schritt 1: Moduswahl ────────────────────────────────────────────────────
@@ -37,7 +42,6 @@ function ModeSelectStep({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-        {/* Karte: Lokal */}
         <button
           onClick={() => onSelect('local')}
           className={`
@@ -65,7 +69,6 @@ function ModeSelectStep({
           <div className="text-xs text-gray-500 mt-2 border-t border-gray-700 pt-2">
             <strong>Benötigt:</strong> Ollama + llama3.1:8b (ca. 5 GB), min. 8 GB RAM
           </div>
-          {/* Hardware-Feedback */}
           {!hwStatus.checking && (
             <div className={`text-xs mt-1 font-medium ${hwStatus.ramOk && hwStatus.ollamaReady ? 'text-green-400' : 'text-yellow-400'}`}>
               {hwStatus.ramOk && hwStatus.ollamaReady
@@ -78,7 +81,6 @@ function ModeSelectStep({
           )}
         </button>
 
-        {/* Karte: Cloud */}
         <button
           onClick={() => onSelect('cloud')}
           className="flex flex-col gap-4 p-6 rounded-2xl border-2 border-blue-600 hover:border-blue-500 hover:bg-blue-950/20 bg-blue-950/10 text-left transition-all"
@@ -237,8 +239,8 @@ function TrustSelectStep({
   )
 }
 
-// ─── Schritt 3: Assistent stellt sich vor ────────────────────────────────────
-function AssistantIntroStep({
+// ─── Schritt 3: KI-Onboarding-Dialog ─────────────────────────────────────────
+function AssistantChatStep({
   mode,
   trustLevel,
   onComplete,
@@ -247,34 +249,122 @@ function AssistantIntroStep({
   trustLevel: TrustLevel
   onComplete: () => void
 }) {
-  const modeLabel  = mode === 'local' ? 'lokal auf deinem Gerät' : 'über die Cloud'
-  const trustLabel = trustOptions.find(t => t.value === trustLevel)?.label ?? trustLevel
+  const [messages,  setMessages]  = useState<ChatMessage[]>([])
+  const [input,     setInput]     = useState('')
+  const [loading,   setLoading]   = useState(false)
+  const [complete,  setComplete]  = useState(false)
+  const [fallback,  setFallback]  = useState(false)
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  // Erste KI-Nachricht beim Laden abrufen
+  useEffect(() => {
+    void sendToLLM([])
+  }, [])
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  async function sendToLLM(msgs: ChatMessage[]) {
+    setLoading(true)
+    try {
+      const os = navigator.platform ?? 'Unbekannt'
+      const res = await fetch('http://localhost:3000/api/onboarding/chat', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ messages: msgs, mode, trustLevel, os }),
+      })
+      const data = await res.json() as { text: string; complete: boolean; fallback: boolean }
+      setMessages(prev => [...prev, { role: 'assistant', content: data.text }])
+      if (data.fallback) setFallback(true)
+      if (data.complete) setComplete(true)
+    } catch {
+      setMessages(prev => [...prev, {
+        role:    'assistant',
+        content: 'Willkommen bei Vela! Deine Einstellungen wurden gespeichert. Du kannst jetzt loslegen. 🚀',
+      }])
+      setFallback(true)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleSend() {
+    const text = input.trim()
+    if (!text || loading) return
+
+    const newMessages: ChatMessage[] = [...messages, { role: 'user', content: text }]
+    setMessages(newMessages)
+    setInput('')
+    await sendToLLM(newMessages)
+  }
 
   return (
-    <div className="flex flex-col items-center gap-6 w-full max-w-xl text-center">
-      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-4xl">
-        ✦
+    <div className="flex flex-col w-full max-w-2xl" style={{ height: '480px' }}>
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xl">
+          ✦
+        </div>
+        <div>
+          <h2 className="text-white font-bold">Vela</h2>
+          <p className="text-xs text-gray-400">
+            {fallback ? 'Bereit zum Starten' : mode === 'local' ? '🔒 Lokal' : '☁️ Cloud'}
+          </p>
+        </div>
       </div>
-      <h2 className="text-2xl font-bold text-white">Hallo! Ich bin Vela.</h2>
-      <div className="bg-gray-800/60 rounded-xl p-5 text-left text-gray-300 text-sm space-y-3">
-        <p>
-          Ich werde <strong className="text-white">{modeLabel}</strong> ausgeführt und arbeite im Modus{' '}
-          <strong className="text-white">{trustLabel}</strong>.
-        </p>
-        <p>
-          Ich kann dir bei Aufgaben helfen, Informationen suchen, Dateien verwalten und vieles mehr.
-          Dabei frage ich dich um Erlaubnis, bevor ich etwas Wichtiges tue.
-        </p>
-        <p className="text-gray-400">
-          Womit kann ich dir heute helfen? Schreib einfach los.
-        </p>
+
+      {/* Chat-Verlauf */}
+      <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-1">
+        {messages.map((msg, i) => (
+          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl text-sm ${
+              msg.role === 'user'
+                ? 'bg-blue-600 text-white rounded-br-sm'
+                : 'bg-gray-800 text-gray-100 rounded-bl-sm'
+            }`}>
+              {msg.content}
+            </div>
+          </div>
+        ))}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="bg-gray-800 px-4 py-2 rounded-2xl rounded-bl-sm">
+              <span className="text-gray-400 text-sm animate-pulse">Vela schreibt…</span>
+            </div>
+          </div>
+        )}
+        <div ref={bottomRef} />
       </div>
-      <button
-        onClick={onComplete}
-        className="px-10 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-lg hover:opacity-90 transition"
-      >
-        Vela starten →
-      </button>
+
+      {/* Input oder Abschluss-Button */}
+      {complete || fallback ? (
+        <button
+          onClick={onComplete}
+          className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-lg hover:opacity-90 transition"
+        >
+          Vela starten →
+        </button>
+      ) : (
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') void handleSend() }}
+            placeholder="Schreib einfach los…"
+            disabled={loading}
+            className="flex-1 bg-gray-800 border border-gray-600 rounded-xl px-4 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500 disabled:opacity-50"
+          />
+          <button
+            onClick={() => void handleSend()}
+            disabled={loading || !input.trim()}
+            className="px-4 py-2 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-500 disabled:opacity-40 transition"
+          >
+            →
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -288,15 +378,11 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
     ramGb: 0, ramOk: false, ollamaReady: false, checking: true,
   })
 
-  // Hardware-Check beim Laden
   useEffect(() => {
     const checkHardware = async () => {
       try {
-        // Ollama-Dienst prüfen
         const res = await fetch('http://localhost:11434/api/tags', { signal: AbortSignal.timeout(2000) })
         const ollamaReady = res.ok
-
-        // RAM via navigator.deviceMemory (Schätzung, nur in sicheren Kontexten)
         const ramGb = (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 4
         setHwStatus({ ramGb, ramOk: ramGb >= 8, ollamaReady, checking: false })
       } catch {
@@ -308,42 +394,29 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
 
   const handleModeSelect = (selectedMode: OperationMode) => {
     setMode(selectedMode)
-    if (selectedMode === 'cloud') {
-      setStep('hardware-warn')
-    } else {
-      setStep('trust-select')
-    }
+    setStep(selectedMode === 'cloud' ? 'hardware-warn' : 'trust-select')
   }
-
-  const handleCloudConfirm = () => setStep('trust-select')
-  const handleCloudBack    = () => setStep('mode-select')
 
   const handleTrustSelect = (t: TrustLevel) => {
     setTrustLevel(t)
-    setStep('assistant-intro')
+    setStep('assistant-chat')
   }
 
-  const handleTrustBack = () => {
-    setStep(mode === 'cloud' ? 'hardware-warn' : 'mode-select')
-  }
-
-  const handleComplete = () => {
-    onComplete(mode, trustLevel)
-  }
+  const handleComplete = () => onComplete(mode, trustLevel)
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-8">
-      {/* Progress-Punkte */}
+      {/* Progress-Dots */}
       <div className="flex gap-2 mb-10">
-        {(['mode-select', 'trust-select', 'assistant-intro'] as const).map((s, i) => (
+        {(['mode-select', 'trust-select', 'assistant-chat'] as const).map((s, i) => (
           <div
             key={s}
             className={`w-2 h-2 rounded-full transition-all ${
               step === s || (step === 'hardware-warn' && i === 0)
                 ? 'bg-blue-400 w-6'
-                : ['trust-select', 'assistant-intro', 'done'].includes(step) && i === 0
+                : ['trust-select', 'assistant-chat', 'done'].includes(step) && i === 0
                   ? 'bg-gray-500'
-                  : step === 'assistant-intro' && i === 1
+                  : step === 'assistant-chat' && i === 1
                     ? 'bg-gray-500'
                     : 'bg-gray-700'
             }`}
@@ -352,9 +425,9 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
       </div>
 
       {step === 'mode-select'    && <ModeSelectStep hwStatus={hwStatus} onSelect={handleModeSelect} />}
-      {step === 'hardware-warn'  && <CloudWarningStep onConfirm={handleCloudConfirm} onBack={handleCloudBack} />}
-      {step === 'trust-select'   && <TrustSelectStep mode={mode} onSelect={handleTrustSelect} onBack={handleTrustBack} />}
-      {step === 'assistant-intro' && <AssistantIntroStep mode={mode} trustLevel={trustLevel} onComplete={handleComplete} />}
+      {step === 'hardware-warn'  && <CloudWarningStep onConfirm={() => setStep('trust-select')} onBack={() => setStep('mode-select')} />}
+      {step === 'trust-select'   && <TrustSelectStep mode={mode} onSelect={handleTrustSelect} onBack={() => setStep(mode === 'cloud' ? 'hardware-warn' : 'mode-select')} />}
+      {step === 'assistant-chat' && <AssistantChatStep mode={mode} trustLevel={trustLevel} onComplete={handleComplete} />}
     </div>
   )
 }

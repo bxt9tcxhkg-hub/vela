@@ -9,6 +9,7 @@ import { config } from './config.js'
 import { chatRoutes } from './routes/chat.js'
 import { settingsRoutes } from './routes/settings.js'
 import { skillRoutes } from './routes/skills.js'
+import { onboardingRoutes } from './routes/onboarding.js'
 
 // Permission-Persistenz: SQLite-Store VOR allem anderen initialisieren
 // Lädt bereits erteilte Grants aus der Datenbank – Nutzer muss nicht neu bestätigen
@@ -27,6 +28,7 @@ await fastify.register(chatRoutes)
 await fastify.register(conversationRoutes)
 await fastify.register(settingsRoutes)
 await fastify.register(skillRoutes)
+await fastify.register(onboardingRoutes)
 
 // Serve UI static files in production
 if (process.env.NODE_ENV === 'production') {
