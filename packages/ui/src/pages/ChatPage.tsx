@@ -24,6 +24,9 @@ export function ChatPage() {
   const [templatesOpen,  setTemplatesOpen]  = useState(false)
   const [templates, setTemplates] = useState<{id:string;name:string;prompt:string;category:string}[]>([])
   const [isListening, setIsListening] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [notifOpen, setNotifOpen] = useState(false)
+  const [notifications, setNotifications] = useState<{id:string;title:string;body:string;read:number;created_at:string}[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [permissionRequest, setPermissionRequest] = useState<{
     skillName: string
@@ -91,6 +94,19 @@ export function ChatPage() {
     }
   }
 
+
+  // Poll notifications
+  React.useEffect(() => {
+    const poll = () => {
+      fetch('http://localhost:3000/api/notifications')
+        .then(r => r.json() as Promise<{notifications: typeof notifications; unread: number}>)
+        .then(d => { setNotifications(d.notifications); setUnreadCount(d.unread) })
+        .catch(() => {})
+    }
+    poll()
+    const interval = setInterval(poll, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Load templates
   React.useEffect(() => {

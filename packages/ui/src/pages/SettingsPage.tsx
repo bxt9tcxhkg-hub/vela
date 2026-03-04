@@ -54,6 +54,9 @@ export function SettingsPage() {
   const [newTask,        setNewTask]        = React.useState({ name: '', cronExpr: '0 9 * * *', prompt: '' })
   const [documents,      setDocuments]      = React.useState<{id:string;name:string;size_bytes:number;created_at:string;preview:string}[]>([])
   const [docUploading,   setDocUploading]   = React.useState(false)
+  const [memoryEntries,  setMemoryEntries]  = React.useState<{key:string;value:string;source:string;updated_at:string}[]>([])
+  const [newMemKey,      setNewMemKey]      = React.useState('')
+  const [newMemVal,      setNewMemVal]      = React.useState('')
   const docInputRef = React.useRef<HTMLInputElement>(null)
   const [tokenUsage,     setTokenUsage]     = React.useState<{rows:{provider:string;model:string;total_tokens:number;requests:number}[];totalTokens:number;estimatedCostUSD:number}>()
   const { t } = useTranslation()
@@ -225,6 +228,11 @@ export function SettingsPage() {
       .then(r => r.json() as Promise<typeof diagnostics>)
       .then(d => setDiagnostics(d))
       .catch(() => {})
+    // Load memory
+    fetch('http://localhost:3000/api/memory')
+      .then(r => r.json() as Promise<{entries: typeof memoryEntries}>)
+      .then(d => setMemoryEntries(d.entries))
+      .catch(() => {})
     // Load documents
     fetch('http://localhost:3000/api/documents')
       .then(r => r.json() as Promise<{documents: typeof documents}>)
@@ -267,6 +275,28 @@ export function SettingsPage() {
     setSkillConfig(prev => ({...prev, [name]: enabled}))
   }
 
+
+
+
+  async function saveMemory() {
+    if (!newMemKey.trim() || !newMemVal.trim()) return
+    await fetch('http://localhost:3000/api/memory', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ key: newMemKey, value: newMemVal })
+    })
+    setMemoryEntries(prev => {
+      const existing = prev.findIndex(e => e.key === newMemKey)
+      const entry = { key: newMemKey, value: newMemVal, source: 'user', updated_at: new Date().toISOString() }
+      if (existing >= 0) { const n = [...prev]; n[existing] = entry; return n }
+      return [entry, ...prev]
+    })
+    setNewMemKey(''); setNewMemVal('')
+  }
+
+  async function deleteMemory(key: string) {
+    await fetch(`http://localhost:3000/api/memory/${encodeURIComponent(key)}`, { method: 'DELETE' })
+    setMemoryEntries(prev => prev.filter(e => e.key !== key))
+  }
 
 
   async function uploadDocument(e: React.ChangeEvent<HTMLInputElement>) {
@@ -641,6 +671,41 @@ export function SettingsPage() {
           </div>
         </section>
 
+
+
+        {/* ── Expert: Langzeit-Gedächtnis ─────────────────────────── */}
+        {isExpert && (
+        <section>
+          <h2 className="font-fraunces font-semibold text-lg text-white mb-1">🧠 Langzeit-Gedächtnis</h2>
+          <p className="text-vtext2 text-sm mb-4">Fakten die Vela dauerhaft kennen soll — über Sessions hinaus.</p>
+          <div className="bg-surface border border-border rounded-2xl p-5 space-y-4">
+            <div className="grid grid-cols-2 gap-2">
+              <input type="text" placeholder="Schlüssel (z.B. mein_name)" value={newMemKey}
+                onChange={e => setNewMemKey(e.target.value)}
+                className="bg-surface2 border border-border rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-blue-500" />
+              <input type="text" placeholder="Wert (z.B. Muhi)" value={newMemVal}
+                onChange={e => setNewMemVal(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') void saveMemory() }}
+                className="bg-surface2 border border-border rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-blue-500" />
+            </div>
+            <button onClick={() => void saveMemory()} disabled={!newMemKey || !newMemVal}
+              className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-500 disabled:opacity-40 transition-colors">
+              + Speichern
+            </button>
+            {memoryEntries.length === 0 && <p className="text-vtext3 text-sm">Noch keine Einträge.</p>}
+            {memoryEntries.map(e => (
+              <div key={e.key} className="flex items-start justify-between py-2 border-t border-border">
+                <div className="min-w-0 mr-4">
+                  <p className="text-blue-400 text-xs font-mono">{e.key}</p>
+                  <p className="text-white text-sm">{e.value}</p>
+                  <p className="text-vtext3 text-xs">{e.source} · {e.updated_at}</p>
+                </div>
+                <button onClick={() => void deleteMemory(e.key)} className="text-red-400 hover:text-red-300 text-xs flex-shrink-0">✕</button>
+              </div>
+            ))}
+          </div>
+        </section>
+        )}
 
         {/* ── Expert: Skill Management ─────────────────────────────── */}
         {isExpert && (

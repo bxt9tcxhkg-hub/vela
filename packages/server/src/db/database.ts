@@ -84,3 +84,23 @@ db.exec(`
     created_at   TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `)
+
+// Long-Term Memory + Notification Queue
+db.exec(`
+  CREATE TABLE IF NOT EXISTS memory_entries (
+    id         TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+    key        TEXT NOT NULL UNIQUE,
+    value      TEXT NOT NULL,
+    source     TEXT NOT NULL DEFAULT 'user',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS notifications (
+    id         TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+    title      TEXT NOT NULL,
+    body       TEXT NOT NULL,
+    read       INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`)
