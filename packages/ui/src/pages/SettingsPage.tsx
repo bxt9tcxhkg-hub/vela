@@ -37,6 +37,19 @@ export function SettingsPage() {
   const [systemPrompt, setSystemPrompt] = useState('Hilfsbereit, präzise, auf Deutsch')
   const [personalitySaveStatus, setPersonalitySaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
+
+  // Expert Mode state
+  const [auditLog,       setAuditLog]       = React.useState<{id:string;skill_name:string;decision:string;execution_ms:number;created_at:string}[]>([])
+  const [auditTotal,     setAuditTotal]     = React.useState(0)
+  const [skillConfig,    setSkillConfig]    = React.useState<Record<string,boolean>>({})
+  const [permissions,    setPermissions]    = React.useState<{permission_type:string;skill_id:string;risk_level:string;description:string}[]>([])
+  const [modelParams,    setModelParams]    = React.useState({ temperature: 0.7, maxTokens: 4096, contextWindow: 8192 })
+  const [modelParamSave, setModelParamSave] = React.useState<'idle'|'saving'|'saved'>('idle')
+  const [diagnostics,    setDiagnostics]    = React.useState<{uptime:number;nodeVersion:string;memUsed:number;memTotal:number;dbSizeMb:number;counts:{messages:number;audit_log:number;conversations:number}}>()
+  const [webhooks,       setWebhooks]       = React.useState<{id:string;name:string;created_at:string}[]>([])
+  const [webhookName,    setWebhookName]    = React.useState('')
+  const [newWebhookSecret, setNewWebhookSecret] = React.useState('')
+  const [skills,         setSkills]         = React.useState<{name:string;description:string}[]>([])
   const { t } = useTranslation()
   const isExpert = state.uiMode === 'expert'
   const [feedbackOpen, setFeedbackOpen] = useState(false)
@@ -172,6 +185,88 @@ export function SettingsPage() {
     } catch {
       setGmailSaveStatus('error')
     }
+  }
+
+
+  React.useEffect(() => {
+    if (!isExpert) return
+    // Load audit log
+    fetch('http://localhost:3000/api/audit-log?limit=20')
+      .then(r => r.json() as Promise<{rows: typeof auditLog; total: number}>)
+      .then(d => { setAuditLog(d.rows); setAuditTotal(d.total) })
+      .catch(() => {})
+    // Load skill config + list
+    fetch('http://localhost:3000/api/skills')
+      .then(r => r.json() as Promise<{name:string;description:string}[]>)
+      .then(d => setSkills(Array.isArray(d) ? d : []))
+      .catch(() => {})
+    fetch('http://localhost:3000/api/skills/config')
+      .then(r => r.json() as Promise<{config:Record<string,boolean>}>)
+      .then(d => setSkillConfig(d.config))
+      .catch(() => {})
+    // Load permissions
+    fetch('http://localhost:3000/api/permissions')
+      .then(r => r.json() as Promise<{permissions: typeof permissions}>)
+      .then(d => setPermissions(d.permissions))
+      .catch(() => {})
+    // Load model params
+    fetch('http://localhost:3000/api/model-params')
+      .then(r => r.json() as Promise<typeof modelParams>)
+      .then(d => setModelParams(d))
+      .catch(() => {})
+    // Load diagnostics
+    fetch('http://localhost:3000/api/diagnostics')
+      .then(r => r.json() as Promise<typeof diagnostics>)
+      .then(d => setDiagnostics(d))
+      .catch(() => {})
+    // Load webhooks
+    fetch('http://localhost:3000/api/webhooks')
+      .then(r => r.json() as Promise<{webhooks: typeof webhooks}>)
+      .then(d => setWebhooks(d.webhooks))
+      .catch(() => {})
+  }, [isExpert])
+
+  async function saveModelParams() {
+    setModelParamSave('saving')
+    await fetch('http://localhost:3000/api/model-params', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(modelParams)
+    })
+    setModelParamSave('saved')
+    setTimeout(() => setModelParamSave('idle'), 2000)
+  }
+
+  async function toggleSkill(name: string, enabled: boolean) {
+    await fetch(`http://localhost:3000/api/skills/${name}/toggle`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ enabled })
+    })
+    setSkillConfig(prev => ({...prev, [name]: enabled}))
+  }
+
+  async function createWebhook() {
+    if (!webhookName.trim()) return
+    const res = await fetch('http://localhost:3000/api/webhooks', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name: webhookName })
+    })
+    const data = await res.json() as {id:string;name:string;secret:string}
+    setWebhooks(prev => [...prev, {id: data.id, name: data.name, created_at: new Date().toISOString()}])
+    setNewWebhookSecret(data.secret)
+    setWebhookName('')
+  }
+
+  async function deleteWebhook(id: string) {
+    await fetch(`http://localhost:3000/api/webhooks/${id}`, { method: 'DELETE' })
+    setWebhooks(prev => prev.filter(w => w.id !== id))
+  }
+
+  async function revokePermission(type: string) {
+    await fetch(`http://localhost:3000/api/permissions/${type}`, { method: 'DELETE' })
+    setPermissions(prev => prev.filter(p => p.permission_type !== type))
   }
 
   return (
@@ -474,6 +569,225 @@ export function SettingsPage() {
             </button>
           </div>
         </section>
+
+
+        {/* ── Expert: Skill Management ─────────────────────────────── */}
+        {isExpert && (
+        <section>
+          <h2 className="font-fraunces font-semibold text-lg text-white mb-1">⚙️ Skill-Management</h2>
+          <p className="text-vtext2 text-sm mb-4">Skills aktivieren oder deaktivieren.</p>
+          <div className="bg-surface border border-border rounded-2xl p-5 space-y-2">
+            {skills.length === 0 && <p className="text-vtext3 text-sm">Keine Skills gefunden.</p>}
+            {skills.map(s => (
+              <div key={s.name} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                <div>
+                  <p className="text-white text-sm font-medium">{s.name}</p>
+                  <p className="text-vtext3 text-xs">{s.description}</p>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={skillConfig[s.name] !== false}
+                    onChange={e => void toggleSkill(s.name, e.target.checked)}
+                    className="w-4 h-4 accent-blue-500"
+                  />
+                  <span className="text-xs text-vtext2">{skillConfig[s.name] !== false ? 'Aktiv' : 'Inaktiv'}</span>
+                </label>
+              </div>
+            ))}
+          </div>
+        </section>
+        )}
+
+        {/* ── Expert: Audit-Log ─────────────────────────────────────── */}
+        {isExpert && (
+        <section>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-fraunces font-semibold text-lg text-white">📋 Audit-Log</h2>
+            <a href="http://localhost:3000/api/audit-log/export" download className="text-xs text-blue-400 hover:text-blue-300 border border-blue-700/40 px-2 py-1 rounded-lg">
+              ⬇ Export CSV
+            </a>
+          </div>
+          <p className="text-vtext2 text-sm mb-4">{auditTotal} Einträge gesamt</p>
+          <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+            {auditLog.length === 0 && <p className="text-vtext3 text-sm p-5">Noch keine Einträge.</p>}
+            {auditLog.map(row => (
+              <div key={row.id} className="flex items-center justify-between px-5 py-3 border-b border-border last:border-0 text-sm">
+                <div>
+                  <span className="text-white font-medium">{row.skill_name}</span>
+                  <span className="text-vtext3 text-xs ml-2">{row.created_at}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {row.execution_ms && <span className="text-vtext3 text-xs">{row.execution_ms}ms</span>}
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    row.decision === 'approved'  ? 'bg-green-900/40 text-green-400' :
+                    row.decision === 'blocked'   ? 'bg-red-900/40 text-red-400' :
+                                                   'bg-yellow-900/40 text-yellow-400'
+                  }`}>{row.decision}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+        )}
+
+        {/* ── Expert: Permission-Matrix ─────────────────────────────── */}
+        {isExpert && (
+        <section>
+          <h2 className="font-fraunces font-semibold text-lg text-white mb-1">🛡️ Permission-Matrix</h2>
+          <p className="text-vtext2 text-sm mb-4">Erteilte Berechtigungen für Skills.</p>
+          <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+            {permissions.length === 0 && <p className="text-vtext3 text-sm p-5">Keine Berechtigungen erteilt.</p>}
+            {permissions.map(p => (
+              <div key={p.permission_type} className="flex items-center justify-between px-5 py-3 border-b border-border last:border-0">
+                <div>
+                  <p className="text-white text-sm font-medium">{p.permission_type}</p>
+                  <p className="text-vtext3 text-xs">{p.description} · Skill: {p.skill_id}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    p.risk_level === 'low'    ? 'bg-green-900/40 text-green-400' :
+                    p.risk_level === 'medium' ? 'bg-yellow-900/40 text-yellow-400' :
+                                                'bg-red-900/40 text-red-400'
+                  }`}>{p.risk_level}</span>
+                  <button
+                    onClick={() => void revokePermission(p.permission_type)}
+                    className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                  >
+                    Widerrufen
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+        )}
+
+        {/* ── Expert: Modell-Parameter ──────────────────────────────── */}
+        {isExpert && (
+        <section>
+          <h2 className="font-fraunces font-semibold text-lg text-white mb-1">🎛️ Modell-Parameter</h2>
+          <p className="text-vtext2 text-sm mb-4">Feineinstellung des KI-Verhaltens.</p>
+          <div className="bg-surface border border-border rounded-2xl p-5 space-y-4">
+            <label className="block">
+              <div className="flex justify-between mb-1.5">
+                <span className="text-white text-sm font-medium">Temperatur</span>
+                <span className="text-blue-400 text-sm font-mono">{modelParams.temperature.toFixed(1)}</span>
+              </div>
+              <input
+                type="range" min="0" max="1" step="0.1"
+                value={modelParams.temperature}
+                onChange={e => setModelParams(p => ({...p, temperature: parseFloat(e.target.value)}))}
+                className="w-full accent-blue-500"
+              />
+              <span className="text-xs text-vtext3">0 = deterministisch · 1 = kreativ</span>
+            </label>
+            <label className="block">
+              <div className="flex justify-between mb-1.5">
+                <span className="text-white text-sm font-medium">Max. Tokens</span>
+                <span className="text-blue-400 text-sm font-mono">{modelParams.maxTokens}</span>
+              </div>
+              <input
+                type="range" min="512" max="16384" step="512"
+                value={modelParams.maxTokens}
+                onChange={e => setModelParams(p => ({...p, maxTokens: parseInt(e.target.value)}))}
+                className="w-full accent-blue-500"
+              />
+            </label>
+            <label className="block">
+              <div className="flex justify-between mb-1.5">
+                <span className="text-white text-sm font-medium">Context-Window</span>
+                <span className="text-blue-400 text-sm font-mono">{modelParams.contextWindow}</span>
+              </div>
+              <input
+                type="range" min="2048" max="128000" step="2048"
+                value={modelParams.contextWindow}
+                onChange={e => setModelParams(p => ({...p, contextWindow: parseInt(e.target.value)}))}
+                className="w-full accent-blue-500"
+              />
+            </label>
+            <button
+              onClick={() => void saveModelParams()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-500 transition-colors"
+            >
+              {modelParamSave === 'saving' ? 'Speichert…' : modelParamSave === 'saved' ? '✓ Gespeichert' : 'Speichern'}
+            </button>
+          </div>
+        </section>
+        )}
+
+        {/* ── Expert: Diagnostics ───────────────────────────────────── */}
+        {isExpert && diagnostics && (
+        <section>
+          <h2 className="font-fraunces font-semibold text-lg text-white mb-1">🔍 Diagnose</h2>
+          <p className="text-vtext2 text-sm mb-4">Server-Status und Laufzeitinformationen.</p>
+          <div className="bg-surface border border-border rounded-2xl p-5 grid grid-cols-2 gap-4 text-sm">
+            {[
+              ['Uptime',      `${Math.floor(diagnostics.uptime / 60)}m ${diagnostics.uptime % 60}s`],
+              ['Node.js',     diagnostics.nodeVersion],
+              ['RAM genutzt', `${diagnostics.memUsed} MB`],
+              ['RAM gesamt',  `${diagnostics.memTotal} MB`],
+              ['DB-Größe',    `${diagnostics.dbSizeMb} MB`],
+              ['Nachrichten', String(diagnostics.counts.messages)],
+              ['Audit-Einträge', String(diagnostics.counts.audit_log)],
+              ['Gespräche',   String(diagnostics.counts.conversations)],
+            ].map(([k, v]) => (
+              <div key={k} className="flex justify-between border-b border-border pb-2">
+                <span className="text-vtext2">{k}</span>
+                <span className="text-white font-mono text-xs">{v}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+        )}
+
+        {/* ── Expert: Webhooks ──────────────────────────────────────── */}
+        {isExpert && (
+        <section>
+          <h2 className="font-fraunces font-semibold text-lg text-white mb-1">🔗 Webhooks</h2>
+          <p className="text-vtext2 text-sm mb-4">Externe Systeme können Vela über Webhooks triggern.</p>
+          <div className="bg-surface border border-border rounded-2xl p-5 space-y-4">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={webhookName}
+                onChange={e => setWebhookName(e.target.value)}
+                placeholder="Name des Webhooks"
+                className="flex-1 bg-surface2 border border-border rounded-xl px-4 py-2 text-white text-sm outline-none focus:border-blue-500"
+              />
+              <button
+                onClick={() => void createWebhook()}
+                disabled={!webhookName.trim()}
+                className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-500 disabled:opacity-40 transition-colors"
+              >
+                Erstellen
+              </button>
+            </div>
+            {newWebhookSecret && (
+              <div className="bg-yellow-900/20 border border-yellow-700/40 rounded-xl p-3">
+                <p className="text-yellow-300 text-xs font-medium mb-1">⚠️ Secret nur einmal sichtbar — jetzt kopieren!</p>
+                <code className="text-yellow-200 text-xs break-all">{newWebhookSecret}</code>
+              </div>
+            )}
+            {webhooks.length === 0 && <p className="text-vtext3 text-sm">Keine Webhooks.</p>}
+            {webhooks.map(w => (
+              <div key={w.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                <div>
+                  <p className="text-white text-sm font-medium">{w.name}</p>
+                  <p className="text-vtext3 text-xs font-mono">{w.id}</p>
+                  <p className="text-vtext3 text-xs">Trigger: POST /api/webhooks/{w.id}/trigger</p>
+                </div>
+                <button
+                  onClick={() => void deleteWebhook(w.id)}
+                  className="text-red-400 hover:text-red-300 text-xs transition-colors"
+                >
+                  Löschen
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+        )}
 
       </div>
 
