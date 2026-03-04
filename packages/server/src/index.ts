@@ -7,6 +7,7 @@ import { chatRoutes } from './routes/chat.js'
 import { settingsRoutes } from './routes/settings.js'
 import { skillRoutes } from './routes/skills.js'
 import { onboardingRoutes } from './routes/onboarding.js'
+import { zoneRoutes } from './routes/zones.js'
 
 const fastify = Fastify({
   logger: config.nodeEnv === 'development',
@@ -21,6 +22,7 @@ await fastify.register(chatRoutes)
 await fastify.register(settingsRoutes)
 await fastify.register(skillRoutes)
 await fastify.register(onboardingRoutes)
+await fastify.register(zoneRoutes)
 
 // Serve UI static files in production
 if (process.env.NODE_ENV === 'production') {

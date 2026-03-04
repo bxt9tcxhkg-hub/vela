@@ -1,8 +1,6 @@
 import { BACKBONE_PROMPT } from './backbone.js'
+import { getCheckpointPath } from '../utils/checkpoint.js'
 import { LEVEL_LAIE, LEVEL_POWERUSER, LEVEL_ENTWICKLER } from './levels.js'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
-
 export type UserLevel = 'laie' | 'poweruser' | 'entwickler'
 export type BackendMode = 'local' | 'groq' | 'cloud'
 
@@ -25,8 +23,7 @@ function getLevelModule(level: UserLevel): string {
 }
 
 export function buildSystemPrompt(vars: PromptVars): string {
-  const __dirname = dirname(fileURLToPath(import.meta.url))
-  const checkpointPath = join(__dirname, '../../../.vela_checkpoint.json')
+  const checkpointPath = getCheckpointPath()
 
   const level: UserLevel = vars.level ?? 'laie'
   const backendMode: BackendMode = vars.backendMode ?? 'local'

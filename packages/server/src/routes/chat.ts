@@ -3,6 +3,8 @@ import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import { chatGroq } from '../ai/groq.js'
 import { buildSystemPrompt, type UserLevel, type BackendMode } from '../prompts/builder.js'
+import { analyzeContext, getContextWarningMessage } from '../utils/context.js'
+import { loadCheckpoint, hasActiveCheckpoint, getCheckpointResumeMessage } from '../utils/checkpoint.js'
 import { config } from '../config.js'
 import { webSearchSkill } from '../skills/web-search.js'
 
@@ -115,6 +117,26 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
         .join('')
     }
 
+    // T-07: Kontextfenster-Analyse
+    const model = process.env.DEFAULT_MODEL ?? 'default'
+    const userLevel = process.env.VELA_PREF_LEVEL ?? 'laie'
+    const ctxStats = analyzeContext(body.messages, activeSystemPrompt, model)
+    const ctxWarning = getContextWarningMessage(ctxStats, userLevel)
+
+    // T-08: Checkpoint-Check (nur bei erster Nachricht einer Session)
+    let checkpointNotice = ''
+    if (body.messages.length === 1 && body.messages[0]?.role === 'user') {
+      if (hasActiveCheckpoint()) {
+        const cp = loadCheckpoint()
+        if (cp) checkpointNotice = getCheckpointResumeMessage(cp, userLevel)
+      }
+    }
+
+    // Prepend notices to text if present
+    let finalText = text
+    if (checkpointNotice) finalText = checkpointNotice + '\n\n' + finalText
+    if (ctxWarning) finalText = finalText + '\n\n---\n' + ctxWarning
+
     // Build activity entry
     let activity: ActivityEntry
     if (skillUsed === 'web-search' && searchQuery) {
@@ -123,7 +145,7 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
       activity = { icon: '💬', description: 'Chat: ' + userMessageText.slice(0, 40), status: 'done' }
     }
 
-    const responseBody = JSON.stringify({ text, skillUsed, activity })
+    const responseBody = JSON.stringify({ text: finalText, skillUsed, activity, contextStats: ctxStats })
     return reply
       .code(200)
       .header('Content-Type', 'application/json; charset=utf-8')
