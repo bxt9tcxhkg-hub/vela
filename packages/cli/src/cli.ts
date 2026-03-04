@@ -179,6 +179,7 @@ function printHelp() {
   println(`  ${c.cyan}vela chat${c.reset}                    Interaktiver Chat (Ollama lokal)`)
   println(`  ${c.cyan}vela chat --provider claude${c.reset}   Chat mit Claude (API Key erforderlich)`)
   println(`  ${c.cyan}vela chat --provider openai${c.reset}   Chat mit GPT-4o`)
+  println(`  ${c.cyan}vela chat --provider gemini${c.reset}   Chat mit Google Gemini`)
   println(`  ${c.cyan}vela status${c.reset}                  System- und Verbindungsstatus`)
   println(`  ${c.cyan}vela models${c.reset}                  Installierte Ollama-Modelle auflisten`)
   println()
