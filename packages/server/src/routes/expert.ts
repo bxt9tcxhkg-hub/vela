@@ -187,4 +187,27 @@ export async function expertRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.send({ ok: true, queued: req.body.message })
     }
   )
+  // ── 7. TOKEN USAGE ───────────────────────────────────────────────────────
+  fastify.get('/api/token-usage', async (_req, reply) => {
+    const rows = db.prepare(`
+      SELECT provider, model,
+        SUM(prompt_tokens) as prompt_tokens,
+        SUM(response_tokens) as response_tokens,
+        SUM(total_tokens) as total_tokens,
+        COUNT(*) as requests
+      FROM token_usage GROUP BY provider, model ORDER BY total_tokens DESC
+    `).all() as { provider: string; model: string; prompt_tokens: number; response_tokens: number; total_tokens: number; requests: number }[]
+
+    const totalTokens = rows.reduce((a, r) => a + r.total_tokens, 0)
+
+    // Rough cost estimate (Claude Haiku: $0.25/M input, $1.25/M output)
+    const estimatedCost = rows.reduce((a, r) => {
+      if (r.provider === 'anthropic') return a + (r.prompt_tokens * 0.00000025) + (r.response_tokens * 0.00000125)
+      if (r.provider === 'openai')    return a + (r.prompt_tokens * 0.0000005)  + (r.response_tokens * 0.0000015)
+      return a
+    }, 0)
+
+    return reply.send({ rows, totalTokens, estimatedCostUSD: +estimatedCost.toFixed(4) })
+  })
+
 }

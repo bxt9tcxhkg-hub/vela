@@ -50,6 +50,7 @@ export function SettingsPage() {
   const [webhookName,    setWebhookName]    = React.useState('')
   const [newWebhookSecret, setNewWebhookSecret] = React.useState('')
   const [skills,         setSkills]         = React.useState<{name:string;description:string}[]>([])
+  const [tokenUsage,     setTokenUsage]     = React.useState<{rows:{provider:string;model:string;total_tokens:number;requests:number}[];totalTokens:number;estimatedCostUSD:number}>()
   const { t } = useTranslation()
   const isExpert = state.uiMode === 'expert'
   const [feedbackOpen, setFeedbackOpen] = useState(false)
@@ -218,6 +219,11 @@ export function SettingsPage() {
     fetch('http://localhost:3000/api/diagnostics')
       .then(r => r.json() as Promise<typeof diagnostics>)
       .then(d => setDiagnostics(d))
+      .catch(() => {})
+    // Load token usage
+    fetch('http://localhost:3000/api/token-usage')
+      .then(r => r.json() as Promise<typeof tokenUsage>)
+      .then(d => setTokenUsage(d))
       .catch(() => {})
     // Load webhooks
     fetch('http://localhost:3000/api/webhooks')
@@ -735,6 +741,30 @@ export function SettingsPage() {
               <div key={k} className="flex justify-between border-b border-border pb-2">
                 <span className="text-vtext2">{k}</span>
                 <span className="text-white font-mono text-xs">{v}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+        )}
+
+
+        {/* ── Expert: Token-Kosten ─────────────────────────────────── */}
+        {isExpert && tokenUsage && (
+        <section>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-fraunces font-semibold text-lg text-white">💰 Token-Kosten</h2>
+            <span className="text-xs text-vtext2">{tokenUsage.totalTokens.toLocaleString()} Tokens gesamt · <span className="text-green-400">${tokenUsage.estimatedCostUSD} USD est.</span></span>
+          </div>
+          <p className="text-vtext2 text-sm mb-4">Geschätzter Verbrauch pro Modell.</p>
+          <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+            {tokenUsage.rows.length === 0 && <p className="text-vtext3 text-sm p-5">Noch kein Verbrauch gemessen.</p>}
+            {tokenUsage.rows.map(r => (
+              <div key={r.model} className="flex items-center justify-between px-5 py-3 border-b border-border last:border-0 text-sm">
+                <div>
+                  <p className="text-white font-medium">{r.model}</p>
+                  <p className="text-vtext3 text-xs">{r.provider} · {r.requests} Anfragen</p>
+                </div>
+                <span className="text-blue-400 font-mono text-xs">{r.total_tokens.toLocaleString()} Tokens</span>
               </div>
             ))}
           </div>

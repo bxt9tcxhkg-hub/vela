@@ -3,6 +3,7 @@ import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import { config } from '../config.js'
+import db from '../db/database.js'
 import { webSearchSkill } from '../skills/web-search.js'
 import { chatOllama, isOllamaAvailable, listOllamaModels } from '../ai/ollama.js'
 import { AgentPlanner } from '@vela/core'
@@ -137,6 +138,11 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
         .filter(b => b.type === 'text')
         .map(b => (b as { type: 'text'; text: string }).text)
         .join('')
+      // Token tracking
+      try {
+        db.prepare(`INSERT INTO token_usage (provider,model,prompt_tokens,response_tokens,total_tokens) VALUES (?,?,?,?,?)`)
+          .run('anthropic', response.model, response.usage.input_tokens, response.usage.output_tokens, response.usage.input_tokens + response.usage.output_tokens)
+      } catch { /* ignore */ }
     }
 
     // ── OpenAI ────────────────────────────────────────────────────────────
@@ -154,6 +160,11 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
         ],
       })
       text = response.choices[0]?.message?.content ?? ''
+      try {
+        const usage = response.usage
+        if (usage) db.prepare(`INSERT INTO token_usage (provider,model,prompt_tokens,response_tokens,total_tokens) VALUES (?,?,?,?,?)`)
+          .run('openai', response.model, usage.prompt_tokens, usage.completion_tokens, usage.total_tokens)
+      } catch { /* ignore */ }
     }
 
     // ── Google Gemini ─────────────────────────────────────────────────

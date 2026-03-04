@@ -71,3 +71,16 @@ db.exec(`
     description     TEXT NOT NULL DEFAULT ''
   );
 `)
+
+// Token-Usage Tracking
+db.exec(`
+  CREATE TABLE IF NOT EXISTS token_usage (
+    id           TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+    provider     TEXT NOT NULL,
+    model        TEXT NOT NULL,
+    prompt_tokens   INTEGER NOT NULL DEFAULT 0,
+    response_tokens INTEGER NOT NULL DEFAULT 0,
+    total_tokens    INTEGER NOT NULL DEFAULT 0,
+    created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`)
