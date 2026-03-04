@@ -21,7 +21,7 @@ function startServer(): void {
   }
 
   serverProcess = spawn(process.execPath, [serverPath], {
-    env:   { ...process.env as Record<string, string>, PORT: '3000', NODE_ENV: 'production' },
+    env:   Object.assign({}, process.env, { PORT: '3000', NODE_ENV: 'production' }) as NodeJS.ProcessEnv,
     stdio: 'pipe',
   })
 
