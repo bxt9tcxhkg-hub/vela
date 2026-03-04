@@ -38,7 +38,7 @@ export function SettingsPage() {
   const [personalitySaveStatus, setPersonalitySaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   const { t } = useTranslation()
-  const isExpert = localStorage.getItem('vela_mode') === 'cloud'
+  const isExpert = state.uiMode === 'expert'
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   // Language state
   const [language, setLanguage] = useState<string>('auto')
@@ -177,7 +177,7 @@ export function SettingsPage() {
   return (
     <div className="flex-1 bg-bg min-h-screen">
       <header className="px-6 py-8 border-b border-border bg-surface">
-        <h1 className="font-fraunces font-semibold text-2xl text-white">Einstellungen</h1>
+        <div className="flex items-center gap-3"><h1 className="font-fraunces font-semibold text-2xl text-white">Einstellungen</h1><span className={`text-xs px-2 py-1 rounded-full font-medium ${isExpert ? "bg-purple-900/40 text-purple-300 border border-purple-700/50" : "bg-blue-900/40 text-blue-300 border border-blue-700/50"}`}>{isExpert ? "Experte" : "Einsteiger"}</span></div>
         <p className="text-vtext2 text-sm mt-1">Passe Vela an deine Bedürfnisse an</p>
       </header>
 
@@ -255,8 +255,8 @@ export function SettingsPage() {
           )}
         </section>
 
-        {/* KI-Verbindung */}
-        <section>
+        {/* KI-Verbindung – nur Experte */}
+        {isExpert && <section>
           <h2 className="font-fraunces font-semibold text-lg text-white mb-1">KI-Verbindung</h2>
           <p className="text-vtext2 text-sm mb-4">Verbinde Vela mit deinem KI-Anbieter.</p>
 
@@ -312,7 +312,7 @@ export function SettingsPage() {
               {saveStatus === 'error' && <span className="text-red-400 text-sm">Fehler beim Speichern</span>}
             </div>
           </div>
-        </section>
+        </section>}
 
         {/* Persönlichkeit */}
         <section>
@@ -331,8 +331,9 @@ export function SettingsPage() {
               />
             </label>
 
+            {isExpert && (
             <label className="block">
-              <span className="text-white text-sm font-medium mb-1.5 block">Persönlichkeit / Verhalten</span>
+              <span className="text-white text-sm font-medium mb-1.5 block">Persönlichkeit / Verhalten <span className="text-xs text-accent2 ml-1">Experte</span></span>
               <textarea
                 value={systemPrompt}
                 onChange={(e) => setSystemPrompt(e.target.value)}
@@ -342,6 +343,7 @@ export function SettingsPage() {
               />
               <span className="text-xs text-vtext3 mt-1 block">Beschreibe, wie Vela sprechen und handeln soll.</span>
             </label>
+            )}
 
             <div className="flex items-center gap-3">
               <button
@@ -382,8 +384,8 @@ export function SettingsPage() {
           </div>
         </section>
 
-        {/* KI-Modell (legacy selector kept for store state) */}
-        <section>
+        {/* KI-Modell (legacy) – nur Experte */}
+        {isExpert && <section>
           <h2 className="font-fraunces font-semibold text-lg text-white mb-1">KI-Modell (Store)</h2>
           <p className="text-vtext2 text-sm mb-4">Welches Sprachmodell soll Vela intern verwenden?</p>
           <select
@@ -395,7 +397,7 @@ export function SettingsPage() {
               <option key={m.value} value={m.value}>{m.label}</option>
             ))}
           </select>
-        </section>
+        </section>}
 
         {/* Sprache / Language */}
         <section>
