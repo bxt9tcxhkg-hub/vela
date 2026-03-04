@@ -217,7 +217,7 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
         <div className="flex-1 overflow-y-auto space-y-4 pr-1 pb-2">
           {msgs.map((msg, i) => (
             <div key={i} className={`flex flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-              <div className={`max-w-sm px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-line shadow-sm ${
+              <div className={`w-full max-w-full px-5 py-4 rounded-2xl text-base leading-relaxed whitespace-pre-line shadow-sm ${
                 msg.role === 'user'
                   ? 'bg-blue-600 text-white rounded-br-sm'
                   : 'bg-gray-800 text-gray-100 rounded-bl-sm'
@@ -225,7 +225,7 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
                 {msg.text}
               </div>
               {msg.chips && (
-                <div className="flex flex-col gap-1.5 max-w-xs w-full">
+                <div className="flex flex-col gap-2 max-w-full w-full">
                   {msg.chips.map(chip => (
                     <button
                       key={chip.value}
