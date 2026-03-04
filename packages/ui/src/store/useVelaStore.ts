@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer } from 'react'
 
 export type OperationMode = 'local' | 'cloud'
+export interface AuthUser { id: string; username: string; email: string; role: string }
 export type UIMode = 'simple' | 'expert'
 
 export interface Message {
@@ -36,6 +37,8 @@ export interface VelaState {
   uiMode:             UIMode
   pendingConfirmation: ConfirmAction | null
   isTyping: boolean
+  authToken: string | null
+  authUser: AuthUser | null
 }
 
 type Action =
@@ -49,6 +52,7 @@ type Action =
   | { type: 'SET_CONFIRMATION'; payload: ConfirmAction | null }
   | { type: 'ADD_ACTIVITY'; payload: Activity }
   | { type: 'CLEAR_MESSAGES' }
+  | { type: 'SET_AUTH'; payload: { token: string; user: AuthUser } | null }
 
 function loadPersistedState(): Partial<VelaState> {
   try {
@@ -71,6 +75,8 @@ const initialState: VelaState = {
   uiMode:             'simple',
   pendingConfirmation: null,
   isTyping:           false,
+  authToken:          localStorage.getItem('vela_auth_token'),
+  authUser:           localStorage.getItem('vela_auth_user') ? JSON.parse(localStorage.getItem('vela_auth_user')!) as AuthUser : null,
   ...loadPersistedState(),
 }
 
@@ -87,6 +93,16 @@ function reducer(state: VelaState, action: Action): VelaState {
       }
     case 'SET_TYPING':
       return { ...state, isTyping: action.payload }
+    case 'SET_AUTH':
+      if (action.payload) {
+        localStorage.setItem('vela_auth_token', action.payload.token)
+        localStorage.setItem('vela_auth_user', JSON.stringify(action.payload.user))
+        return { ...state, authToken: action.payload.token, authUser: action.payload.user }
+      } else {
+        localStorage.removeItem('vela_auth_token')
+        localStorage.removeItem('vela_auth_user')
+        return { ...state, authToken: null, authUser: null }
+      }
     case 'SET_TRUST':
       localStorage.setItem('vela_trust', action.payload)
       return { ...state, trustLevel: action.payload }

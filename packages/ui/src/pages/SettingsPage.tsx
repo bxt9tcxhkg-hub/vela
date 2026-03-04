@@ -56,6 +56,7 @@ export function SettingsPage() {
   const [docUploading,   setDocUploading]   = React.useState(false)
   const [memoryEntries,  setMemoryEntries]  = React.useState<{key:string;value:string;source:string;updated_at:string}[]>([])
   const [newMemKey,      setNewMemKey]      = React.useState('')
+  const [users,          setUsers]          = React.useState<{id:string;username:string;email:string;role:string;created_at:string}[]>([])
   const [adaptivePrefs,  setAdaptivePrefs]  = React.useState<{id:string;signal_key:string;label:string;value:string;status:string;count:number}[]>([])
   const [newMemVal,      setNewMemVal]      = React.useState('')
   const docInputRef = React.useRef<HTMLInputElement>(null)
@@ -229,6 +230,13 @@ export function SettingsPage() {
       .then(r => r.json() as Promise<typeof diagnostics>)
       .then(d => setDiagnostics(d))
       .catch(() => {})
+    // Load users (admin only)
+    if (isExpert) {
+      fetch('http://localhost:3000/api/users')
+        .then(r => r.json() as Promise<{users: typeof users}>)
+        .then(d => setUsers(d.users))
+        .catch(() => {})
+    }
     // Load adaptive preferences
     fetch('http://localhost:3000/api/preferences')
       .then(r => r.json() as Promise<{preferences: typeof adaptivePrefs}>)
@@ -283,6 +291,21 @@ export function SettingsPage() {
 
 
 
+
+
+
+  async function changeRole(id: string, role: string) {
+    await fetch(`http://localhost:3000/api/users/${id}/role`, {
+      method: 'PATCH', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ role })
+    })
+    setUsers(prev => prev.map(u => u.id === id ? {...u, role} : u))
+  }
+
+  async function deleteUser(id: string) {
+    await fetch(`http://localhost:3000/api/users/${id}`, { method: 'DELETE' })
+    setUsers(prev => prev.filter(u => u.id !== id))
+  }
 
 
   async function deleteAdaptivePref(id: string) {
@@ -685,6 +708,36 @@ export function SettingsPage() {
         </section>
 
 
+
+
+        {/* ── Expert: Nutzerverwaltung ─────────────────────────────── */}
+        {isExpert && (
+        <section>
+          <h2 className="font-fraunces font-semibold text-lg text-white mb-1">👥 Nutzerverwaltung</h2>
+          <p className="text-vtext2 text-sm mb-4">Alle registrierten Nutzer und deren Rollen.</p>
+          <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+            {users.length === 0 && <p className="text-vtext3 text-sm p-5">Keine Nutzer registriert. Multi-User-Auth ist im Cloud-Modus aktiv.</p>}
+            {users.map(u => (
+              <div key={u.id} className="flex items-center justify-between px-5 py-3 border-b border-border last:border-0">
+                <div>
+                  <p className="text-white text-sm font-medium">{u.username}</p>
+                  <p className="text-vtext3 text-xs">{u.email} · seit {u.created_at.slice(0,10)}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <select value={u.role}
+                    onChange={e => void changeRole(u.id, e.target.value)}
+                    className="bg-surface2 border border-border text-white text-xs rounded-lg px-2 py-1 outline-none">
+                    <option value="admin">Admin</option>
+                    <option value="user">User</option>
+                    <option value="guest">Gast</option>
+                  </select>
+                  <button onClick={() => void deleteUser(u.id)} className="text-red-400 hover:text-red-300 text-xs">✕</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+        )}
 
         {/* ── Expert: Langzeit-Gedächtnis ─────────────────────────── */}
         {isExpert && (

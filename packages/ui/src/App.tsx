@@ -7,6 +7,8 @@ import { ChatPage } from './pages/ChatPage'
 import { ActivityPage } from './pages/ActivityPage'
 import { PlaygroundPage } from './pages/PlaygroundPage'
 import { WorkflowsPage } from './pages/WorkflowsPage'
+import { AuthPage } from './pages/AuthPage'
+import type { AuthUser } from './store/useVelaStore'
 import { SettingsPage } from './pages/SettingsPage'
 import OnboardingPage from './pages/OnboardingPage'
 import { MarketplacePage } from './pages/MarketplacePage'
@@ -37,6 +39,11 @@ export default function App() {
   const [onboarded, setOnboarded] = useState<boolean>(
     () => localStorage.getItem('vela_onboarded') === 'true'
   )
+  const { state, dispatch } = useVelaStore()
+
+  function handleAuth(token: string, user: AuthUser) {
+    dispatch({ type: 'SET_AUTH', payload: { token, user } })
+  }
 
   function completeOnboarding(mode: OperationMode, trustLevel: 'cautious' | 'balanced' | 'autonomous') {
     localStorage.setItem('vela_onboarded', 'true')
@@ -44,6 +51,12 @@ export default function App() {
     localStorage.setItem('vela_trust', trustLevel)
     localStorage.setItem('vela_model', mode === 'local' ? 'ollama' : 'claude')
     setOnboarded(true)
+  }
+
+  // Auth gate — only for cloud mode
+  const needsAuth = state.operationMode === 'cloud' && !state.authToken
+  if (needsAuth) {
+    return <AuthPage onAuth={handleAuth} />
   }
 
   if (!onboarded) {

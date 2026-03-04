@@ -126,3 +126,23 @@ db.exec(`
     decided_at  TEXT
   );
 `)
+
+// Multi-User Auth
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id           TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+    username     TEXT NOT NULL UNIQUE,
+    email        TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    role         TEXT NOT NULL DEFAULT 'user',
+    created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS sessions (
+    token      TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+`)
