@@ -82,7 +82,7 @@ ipcMain.handle('vela:server-status', async () => {
     const res = await fetch('http://localhost:3000/api/health', {
       signal: AbortSignal.timeout(3000),
     })
-    const data = await res.json()
+    const data = await res.json() as Record<string, unknown>
     return { running: res.ok, ...data }
   } catch {
     return { running: false }
