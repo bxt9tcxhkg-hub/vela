@@ -1,34 +1,43 @@
-FROM node:20-alpine AS builder
+# Vela Server – Production Docker Image
+FROM node:20-alpine AS base
+RUN npm install -g pnpm@9
 
-RUN corepack enable && corepack prepare pnpm@9.1.0 --activate
-
+# Dependencies
+FROM base AS deps
 WORKDIR /app
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* ./
-COPY packages/core/package.json ./packages/core/
-COPY packages/ui/package.json ./packages/ui/
-COPY packages/cli/package.json ./packages/cli/
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY packages/core/package.json     ./packages/core/
+COPY packages/server/package.json   ./packages/server/
+RUN pnpm install --frozen-lockfile --prod=false
 
-RUN pnpm install --frozen-lockfile
-
+# Build
+FROM deps AS builder
 COPY . .
-RUN pnpm build
+RUN pnpm --filter @vela/core build
+RUN pnpm --filter @vela/server build
 
-# Production image
+# Runtime
 FROM node:20-alpine AS runner
-
-RUN corepack enable && corepack prepare pnpm@9.1.0 --activate
-
 WORKDIR /app
-ENV NODE_ENV=production
 
-COPY --from=builder /app/packages/core/dist ./packages/core/dist
-COPY --from=builder /app/packages/core/package.json ./packages/core/
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
+RUN addgroup -S vela && adduser -S vela -G vela
 
-RUN addgroup -g 1001 -S vela && adduser -S vela -u 1001
+COPY --from=builder --chown=vela:vela /app/packages/core/dist   ./packages/core/dist
+COPY --from=builder --chown=vela:vela /app/packages/core/package.json ./packages/core/
+COPY --from=builder --chown=vela:vela /app/packages/server/dist  ./packages/server/dist
+COPY --from=builder --chown=vela:vela /app/packages/server/package.json ./packages/server/
+COPY --from=builder --chown=vela:vela /app/node_modules          ./node_modules
+COPY --from=builder --chown=vela:vela /app/package.json ./
+
 USER vela
+
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV VELA_DATA_DIR=/data
 
 EXPOSE 3000
 
-CMD ["node", "packages/core/dist/index.js"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget -qO- http://localhost:3000/api/health || exit 1
+
+CMD ["node", "packages/server/dist/index.js"]

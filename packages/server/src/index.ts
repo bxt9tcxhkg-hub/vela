@@ -1,3 +1,4 @@
+import { conversationRoutes } from './routes/conversations.js'
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import { join, dirname } from 'path'
@@ -17,6 +18,7 @@ await fastify.register(cors, {
 })
 
 await fastify.register(chatRoutes)
+  await fastify.register(conversationRoutes)
 await fastify.register(settingsRoutes)
 await fastify.register(skillRoutes)
 

@@ -6,6 +6,7 @@ import { config } from '../config.js'
 import { webSearchSkill } from '../skills/web-search.js'
 import { chatOllama, isOllamaAvailable, listOllamaModels } from '../ai/ollama.js'
 import { AgentPlanner } from '@vela/core'
+import { addMessage } from '../db/conversations.js'
 import { chatGemini } from '../ai/gemini.js'
 
 const MessageSchema = z.object({
@@ -171,8 +172,17 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
       ? { icon: '🔍', description: `Web-Suche: ${searchQuery}`, status: 'done' }
       : { icon: '💬', description: `Chat: ${userText.slice(0, 40)}`, status: 'done' }
 
+    // Nachrichten in SQLite speichern
+    const convId = (request.headers['x-conversation-id'] as string) ?? crypto.randomUUID()
+    const msgId  = crypto.randomUUID()
+    if (lastUser) {
+      addMessage(crypto.randomUUID(), convId, 'user', lastUser.content)
+    }
+    addMessage(msgId, convId, 'assistant', text, skillUsed ?? undefined, provider)
+
     return reply.code(200)
       .header('Content-Type', 'application/json; charset=utf-8')
-      .send(JSON.stringify({ text, skillUsed, provider, activity }))
+      .header('x-conversation-id', convId)
+      .send(JSON.stringify({ text, skillUsed, provider, activity, conversationId: convId }))
   })
 }

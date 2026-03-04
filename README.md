@@ -126,6 +126,26 @@ GOOGLE_REFRESH_TOKEN=...
 
 ---
 
+
+## Docker (Self-Hosted)
+
+```bash
+# 1. Repo klonen
+git clone https://github.com/bxt9tcxhkg-hub/vela.git && cd vela
+
+# 2. Konfiguration
+cp .env.docker .env
+nano .env   # API-Keys eintragen
+
+# 3. Starten
+docker compose -f docker/docker-compose.yml up -d
+
+# Mit integriertem Ollama (kein lokales Ollama nötig)
+docker compose -f docker/docker-compose.yml --profile with-ollama up -d
+```
+
+Vela läuft dann auf `http://localhost:3000`
+
 ## Eigene Skills schreiben
 
 ```typescript

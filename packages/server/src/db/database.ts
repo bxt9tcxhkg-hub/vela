@@ -1,0 +1,60 @@
+// SQLite Datenbank – Conversations, Audit Log, Settings
+import Database from 'better-sqlite3'
+import { join } from 'path'
+import { existsSync, mkdirSync } from 'fs'
+
+const DATA_DIR = process.env.VELA_DATA_DIR ?? join(process.cwd(), '.vela-data')
+if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true })
+
+const DB_PATH = join(DATA_DIR, 'vela.db')
+
+export const db = new Database(DB_PATH)
+
+// WAL-Modus für bessere Performance
+db.pragma('journal_mode = WAL')
+db.pragma('foreign_keys = ON')
+
+// ─── Schema ───────────────────────────────────────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS conversations (
+    id          TEXT PRIMARY KEY,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    title       TEXT,
+    mode        TEXT DEFAULT 'local',
+    trust_level TEXT DEFAULT 'balanced'
+  );
+
+  CREATE TABLE IF NOT EXISTS messages (
+    id              TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    role            TEXT NOT NULL CHECK(role IN ('user','assistant','system')),
+    content         TEXT NOT NULL,
+    skill_used      TEXT,
+    provider        TEXT,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id);
+
+  CREATE TABLE IF NOT EXISTS audit_log (
+    id           TEXT PRIMARY KEY,
+    action_id    TEXT NOT NULL,
+    skill_name   TEXT NOT NULL,
+    params       TEXT NOT NULL,
+    decision     TEXT NOT NULL,
+    result       TEXT,
+    execution_ms INTEGER,
+    checksum     TEXT NOT NULL,
+    created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+`)
+
+console.log(`[DB] SQLite geöffnet: ${DB_PATH}`)
+
+export default db

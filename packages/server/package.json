@@ -18,12 +18,14 @@
     "fastify": "^4.27.0",
     "zod": "^3.22.0",
     "@google/generative-ai": "^0.21.0",
-    "openai": "^4.77.0"
+    "openai": "^4.77.0",
+    "better-sqlite3": "^9.6.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "tsx": "^4.7.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "@types/better-sqlite3": "^7.6.0"
   },
   "type": "module"
 }
