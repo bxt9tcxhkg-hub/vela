@@ -104,3 +104,25 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `)
+
+// Adaptive Preferences – Behavioral Learning
+db.exec(`
+  CREATE TABLE IF NOT EXISTS behavior_signals (
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+    signal_key  TEXT NOT NULL,
+    label       TEXT NOT NULL,
+    count       INTEGER NOT NULL DEFAULT 1,
+    last_seen   TEXT NOT NULL DEFAULT (datetime('now')),
+    threshold   INTEGER NOT NULL DEFAULT 3
+  );
+
+  CREATE TABLE IF NOT EXISTS adaptive_preferences (
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+    signal_key  TEXT NOT NULL UNIQUE,
+    label       TEXT NOT NULL,
+    value       TEXT NOT NULL,
+    status      TEXT NOT NULL DEFAULT 'pending',
+    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    decided_at  TEXT
+  );
+`)

@@ -25,6 +25,7 @@ export function ChatPage() {
   const [templates, setTemplates] = useState<{id:string;name:string;prompt:string;category:string}[]>([])
   const [isListening, setIsListening] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [suggestions, setSuggestions] = useState<{id:string;label:string;value:string;count:number}[]>([])
   const [notifOpen, setNotifOpen] = useState(false)
   const [notifications, setNotifications] = useState<{id:string;title:string;body:string;read:number;created_at:string}[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -98,6 +99,10 @@ export function ChatPage() {
   // Poll notifications
   React.useEffect(() => {
     const poll = () => {
+      fetch('http://localhost:3000/api/preferences/suggestions')
+        .then(r => r.json() as Promise<{suggestions: typeof suggestions}>)
+        .then(d => setSuggestions(d.suggestions))
+        .catch(() => {})
       fetch('http://localhost:3000/api/notifications')
         .then(r => r.json() as Promise<{notifications: typeof notifications; unread: number}>)
         .then(d => { setNotifications(d.notifications); setUnreadCount(d.unread) })
@@ -137,6 +142,16 @@ export function ChatPage() {
       textareaRef.current?.focus()
     }
     recognition.start()
+  }
+
+  async function confirmSuggestion(id: string) {
+    await fetch(`http://localhost:3000/api/preferences/suggestions/${id}/confirm`, { method: 'POST' })
+    setSuggestions(prev => prev.filter(s => s.id !== id))
+  }
+
+  async function rejectSuggestion(id: string) {
+    await fetch(`http://localhost:3000/api/preferences/suggestions/${id}/reject`, { method: 'POST' })
+    setSuggestions(prev => prev.filter(s => s.id !== id))
   }
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -294,6 +309,31 @@ export function ChatPage() {
           <p className="text-xs text-vtext3">{state.messages.length} Nachricht{state.messages.length !== 1 ? 'en' : ''} in dieser Session</p>
         </div>
       )}
+
+      {/* Adaptive Preference Suggestions */}
+      {suggestions.map(s => (
+        <div key={s.id} className="mx-4 mt-3 bg-blue-950 border border-blue-700 rounded-2xl px-4 py-3 flex items-start gap-3 shadow-lg">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-blue-300 mb-0.5">🧠 Vela lernt — Vorschlag</p>
+            <p className="text-white text-sm font-medium">{s.label}</p>
+            <p className="text-blue-200 text-xs mt-0.5">Du hast das {s.count}× angefordert. Soll ich das dauerhaft übernehmen?</p>
+          </div>
+          <div className="flex gap-2 flex-shrink-0 mt-0.5">
+            <button
+              onClick={() => void confirmSuggestion(s.id)}
+              className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-500 transition-colors"
+            >
+              ✓ Ja, immer
+            </button>
+            <button
+              onClick={() => void rejectSuggestion(s.id)}
+              className="px-3 py-1.5 bg-surface2 border border-border text-vtext2 text-xs rounded-lg hover:text-white transition-colors"
+            >
+              ✕ Nein
+            </button>
+          </div>
+        </div>
+      ))}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6">

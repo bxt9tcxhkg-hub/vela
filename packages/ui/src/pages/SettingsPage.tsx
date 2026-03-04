@@ -56,6 +56,7 @@ export function SettingsPage() {
   const [docUploading,   setDocUploading]   = React.useState(false)
   const [memoryEntries,  setMemoryEntries]  = React.useState<{key:string;value:string;source:string;updated_at:string}[]>([])
   const [newMemKey,      setNewMemKey]      = React.useState('')
+  const [adaptivePrefs,  setAdaptivePrefs]  = React.useState<{id:string;signal_key:string;label:string;value:string;status:string;count:number}[]>([])
   const [newMemVal,      setNewMemVal]      = React.useState('')
   const docInputRef = React.useRef<HTMLInputElement>(null)
   const [tokenUsage,     setTokenUsage]     = React.useState<{rows:{provider:string;model:string;total_tokens:number;requests:number}[];totalTokens:number;estimatedCostUSD:number}>()
@@ -228,6 +229,11 @@ export function SettingsPage() {
       .then(r => r.json() as Promise<typeof diagnostics>)
       .then(d => setDiagnostics(d))
       .catch(() => {})
+    // Load adaptive preferences
+    fetch('http://localhost:3000/api/preferences')
+      .then(r => r.json() as Promise<{preferences: typeof adaptivePrefs}>)
+      .then(d => setAdaptivePrefs(d.preferences))
+      .catch(() => {})
     // Load memory
     fetch('http://localhost:3000/api/memory')
       .then(r => r.json() as Promise<{entries: typeof memoryEntries}>)
@@ -276,6 +282,13 @@ export function SettingsPage() {
   }
 
 
+
+
+
+  async function deleteAdaptivePref(id: string) {
+    await fetch(`http://localhost:3000/api/preferences/${id}`, { method: 'DELETE' })
+    setAdaptivePrefs(prev => prev.filter(p => p.id !== id))
+  }
 
 
   async function saveMemory() {
@@ -879,6 +892,36 @@ export function SettingsPage() {
 
 
 
+
+
+        {/* ── Adaptive Präferenzen (Laie + Experte) ──────────────── */}
+        <section>
+          <h2 className="font-fraunces font-semibold text-lg text-white mb-1">🎯 Adaptive Präferenzen</h2>
+          <p className="text-vtext2 text-sm mb-4">Vela lernt aus deinem Verhalten und passt sich dauerhaft an.</p>
+          <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+            {adaptivePrefs.length === 0 && (
+              <p className="text-vtext3 text-sm p-5">Noch keine Vorschläge — Vela beobachtet dein Verhalten und schlägt Anpassungen vor sobald du 3× dasselbe verlangst.</p>
+            )}
+            {adaptivePrefs.map(p => (
+              <div key={p.id} className="flex items-start justify-between px-5 py-3 border-b border-border last:border-0">
+                <div className="flex-1 min-w-0 mr-4">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      p.status === 'confirmed' ? 'bg-green-900 text-green-300' :
+                      p.status === 'rejected'  ? 'bg-red-900 text-red-300' :
+                      'bg-blue-900 text-blue-300'
+                    }`}>
+                      {p.status === 'confirmed' ? '✓ Aktiv' : p.status === 'rejected' ? '✕ Abgelehnt' : `⏳ Vorschlag (${p.count}×)`}
+                    </span>
+                    <span className="text-white text-sm font-medium">{p.label}</span>
+                  </div>
+                  <p className="text-vtext3 text-xs">{p.value}</p>
+                </div>
+                <button onClick={() => void deleteAdaptivePref(p.id)} className="text-red-400 hover:text-red-300 text-xs flex-shrink-0">✕</button>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* ── Dokument-Bibliothek (Laie + Experte) ────────────────── */}
         <section>
