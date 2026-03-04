@@ -10,7 +10,14 @@ function randomId() {
   return Math.random().toString(36).slice(2)
 }
 
-const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin
+const API_BASE = (() => {
+  const override = localStorage.getItem('vela_api_base')
+  if (override) return override
+  const { protocol, hostname, port, origin } = window.location
+  if (hostname === 'localhost' || hostname === '127.0.0.1') return `${protocol}//${hostname}:3000`
+  if (port === '5173' || port === '4173') return `${protocol}//${hostname}:3000`
+  return origin
+})()
 
 export function ChatPage() {
   const { state, dispatch } = useVelaStore()
