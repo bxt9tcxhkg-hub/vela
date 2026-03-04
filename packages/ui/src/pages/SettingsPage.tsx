@@ -56,6 +56,9 @@ export function SettingsPage() {
   const [docUploading,   setDocUploading]   = React.useState(false)
   const [memoryEntries,  setMemoryEntries]  = React.useState<{key:string;value:string;source:string;updated_at:string}[]>([])
   const [newMemKey,      setNewMemKey]      = React.useState('')
+  const [channels,       setChannels]       = React.useState<{id:string;type:string;name:string;enabled:number;chat_id:string|null;created_at:string}[]>([])
+  const [newChannel,     setNewChannel]     = React.useState({ type: 'telegram', name: '', token: '', chatId: '', webhookUrl: '' })
+  const [channelTesting, setChannelTesting] = React.useState<string|null>(null)
   const [users,          setUsers]          = React.useState<{id:string;username:string;email:string;role:string;created_at:string}[]>([])
   const [adaptivePrefs,  setAdaptivePrefs]  = React.useState<{id:string;signal_key:string;label:string;value:string;status:string;count:number}[]>([])
   const [newMemVal,      setNewMemVal]      = React.useState('')
@@ -230,6 +233,11 @@ export function SettingsPage() {
       .then(r => r.json() as Promise<typeof diagnostics>)
       .then(d => setDiagnostics(d))
       .catch(() => {})
+    // Load channels
+    fetch('http://localhost:3000/api/channels')
+      .then(r => r.json() as Promise<{channels: typeof channels}>)
+      .then(d => setChannels(d.channels))
+      .catch(() => {})
     // Load users (admin only)
     if (isExpert) {
       fetch('http://localhost:3000/api/users')
@@ -292,6 +300,35 @@ export function SettingsPage() {
 
 
 
+
+
+
+  async function addChannel() {
+    if (!newChannel.name || !newChannel.token) return
+    await fetch('http://localhost:3000/api/channels', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        type: newChannel.type, name: newChannel.name, token: newChannel.token,
+        chatId: newChannel.chatId || undefined, webhookUrl: newChannel.webhookUrl || undefined
+      })
+    })
+    const res = await fetch('http://localhost:3000/api/channels')
+    const d = await res.json() as {channels: typeof channels}
+    setChannels(d.channels)
+    setNewChannel({ type: 'telegram', name: '', token: '', chatId: '', webhookUrl: '' })
+  }
+
+  async function testChannel(id: string) {
+    setChannelTesting(id)
+    try {
+      await fetch(`http://localhost:3000/api/channels/${id}/test`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' })
+    } finally { setChannelTesting(null) }
+  }
+
+  async function deleteChannel(id: string) {
+    await fetch(`http://localhost:3000/api/channels/${id}`, { method: 'DELETE' })
+    setChannels(prev => prev.filter(c => c.id !== id))
+  }
 
 
   async function changeRole(id: string, role: string) {
@@ -709,6 +746,67 @@ export function SettingsPage() {
 
 
 
+
+
+        {/* ── Expert: Multi-Channel ───────────────────────────────── */}
+        {isExpert && (
+        <section>
+          <h2 className="font-fraunces font-semibold text-lg text-white mb-1">📡 Multi-Channel</h2>
+          <p className="text-vtext2 text-sm mb-4">Vela über Telegram und Discord erreichbar machen.</p>
+          <div className="bg-surface border border-border rounded-2xl p-5 space-y-4">
+            {/* Add channel form */}
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <select value={newChannel.type} onChange={e => setNewChannel(p => ({...p, type: e.target.value}))}
+                  className="bg-surface2 border border-border text-white text-sm rounded-xl px-3 py-2 outline-none focus:border-blue-500">
+                  <option value="telegram">📱 Telegram</option>
+                  <option value="discord">💬 Discord</option>
+                </select>
+                <input type="text" placeholder="Name (z.B. Mein Bot)" value={newChannel.name}
+                  onChange={e => setNewChannel(p => ({...p, name: e.target.value}))}
+                  className="bg-surface2 border border-border rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-blue-500" />
+              </div>
+              <input type="text" placeholder={newChannel.type === 'telegram' ? 'Bot-Token (von @BotFather)' : 'Discord Webhook URL'}
+                value={newChannel.type === 'telegram' ? newChannel.token : newChannel.webhookUrl}
+                onChange={e => setNewChannel(p => newChannel.type === 'telegram' ? {...p, token: e.target.value} : {...p, webhookUrl: e.target.value, token: e.target.value})}
+                className="w-full bg-surface2 border border-border rounded-xl px-3 py-2 text-white text-sm font-mono outline-none focus:border-blue-500" />
+              {newChannel.type === 'telegram' && (
+                <input type="text" placeholder="Chat-ID (aus @userinfobot)"
+                  value={newChannel.chatId}
+                  onChange={e => setNewChannel(p => ({...p, chatId: e.target.value}))}
+                  className="w-full bg-surface2 border border-border rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-blue-500" />
+              )}
+              <button onClick={() => void addChannel()} disabled={!newChannel.name || !newChannel.token}
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-500 disabled:opacity-40 transition-colors">
+                + Kanal hinzufügen
+              </button>
+            </div>
+            {/* Channel list */}
+            {channels.length === 0 && <p className="text-vtext3 text-sm">Keine Kanäle konfiguriert.</p>}
+            {channels.map(ch => (
+              <div key={ch.id} className="flex items-center justify-between py-2 border-t border-border">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{ch.type === 'telegram' ? '📱' : '💬'}</span>
+                    <p className="text-white text-sm font-medium">{ch.name}</p>
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${ch.enabled ? 'bg-green-900 text-green-300' : 'bg-surface2 text-vtext3'}`}>
+                      {ch.enabled ? 'Aktiv' : 'Inaktiv'}
+                    </span>
+                  </div>
+                  <p className="text-vtext3 text-xs">{ch.created_at.slice(0,10)}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => void testChannel(ch.id)} disabled={channelTesting === ch.id}
+                    className="text-xs px-2 py-1 border border-border text-vtext2 rounded-lg hover:text-white disabled:opacity-50 transition-colors">
+                    {channelTesting === ch.id ? '⏳' : '▶ Test'}
+                  </button>
+                  <button onClick={() => void deleteChannel(ch.id)} className="text-red-400 hover:text-red-300 text-xs">✕</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+        )}
 
         {/* ── Expert: Nutzerverwaltung ─────────────────────────────── */}
         {isExpert && (

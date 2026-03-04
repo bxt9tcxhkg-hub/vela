@@ -36,13 +36,13 @@
 
 | Feature | Ziel | Status |
 |---|---|---|
-| Multi-User + Rollen | Mehrere Nutzer, Admin/User/Guest | ⬜ 🔧 |
-| Sub-Agent Delegation | Aufgaben auf Mini-Agents aufteilen | ⬜ 🔧 |
+| Multi-User + Rollen | Mehrere Nutzer, Admin/User/Guest | ✅ 🔧 |
+| Sub-Agent Delegation | Aufgaben auf Mini-Agents aufteilen | ✅ 🔧 |
 | OIDC / LDAP-Login | Unternehmens-Auth | ⬜ 🔧 |
-| Multi-Channel (Discord/Telegram) | Vela über mehrere Plattformen | ⬜ 🔧 |
+| Multi-Channel (Discord/Telegram) | Vela über mehrere Plattformen | ✅ 🔧 |
 | Workspace-Isolation | Mehrere Arbeitsbereiche | ⬜ 🔧 |
-| Bild-Upload (Vision) | Bilder an Vela schicken | ⬜ 👤🔧 |
-| Text-to-Speech | Vela spricht zurück | ⬜ 👤 |
+| Bild-Upload (Vision) | Bilder an Vela schicken | ✅ 👤🔧 |
+| Text-to-Speech | Vela spricht zurück | ✅ 👤 |
 
 ## Bereits implementiert ✅
 
