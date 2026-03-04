@@ -210,7 +210,6 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
     return reply.code(200)
       .header('Content-Type','application/json; charset=utf-8')
       .header('Content-Length', Buffer.byteLength(responseBody))
-      .header('Transfer-Encoding','')
       .send(responseBody)
   })
 }

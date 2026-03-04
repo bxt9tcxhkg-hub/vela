@@ -11,7 +11,7 @@ import { ollamaAdapter }    from './ollama.js'
 import { geminiAdapter }    from './gemini.js'
 import { openaiAdapter }    from './openai.js'
 
-export type BackendName = 'anthropic' | 'groq' | 'local' | 'openai'
+export type BackendName = 'anthropic' | 'groq' | 'local' | 'gemini' | 'openai'
 
 const ADAPTERS: Record<string, BackendAdapter> = {
   anthropic: anthropicAdapter,
