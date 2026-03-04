@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import db from '../db/database.js'
 import { writeFileSync, readFileSync, existsSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -28,6 +29,7 @@ interface SettingsBody {
   googleClientId?: string
   googleClientSecret?: string
   googleRefreshToken?: string
+  language?: string
 }
 
 export async function settingsRoutes(fastify: FastifyInstance) {
@@ -38,6 +40,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
       velaName: process.env.VELA_NAME ?? 'Vela',
       systemPrompt: process.env.VELA_SYSTEM_PROMPT ?? '',
       hasGmailConfig: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_REFRESH_TOKEN),
+      language: (db.prepare("SELECT value FROM settings WHERE key='language'").get() as { value?: string } | undefined)?.value ?? 'auto',
     })
     return reply
       .header('Content-Type', 'application/json')
@@ -47,7 +50,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post<{ Body: SettingsBody }>('/api/settings', async (req, reply) => {
-    const { anthropicKey, model, systemPrompt, velaName, googleClientId, googleClientSecret, googleRefreshToken } = req.body ?? {}
+    const { anthropicKey, model, systemPrompt, velaName, googleClientId, googleClientSecret, googleRefreshToken, language } = req.body ?? {}
 
     if (anthropicKey?.trim()) {
       writeEnvKey('ANTHROPIC_API_KEY', anthropicKey.trim())
@@ -69,6 +72,9 @@ export async function settingsRoutes(fastify: FastifyInstance) {
     }
     if (googleRefreshToken?.trim()) {
       writeEnvKey('GOOGLE_REFRESH_TOKEN', googleRefreshToken.trim())
+    }
+    if (language !== undefined) {
+      db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('language', ?)").run(language)
     }
 
     const body = JSON.stringify({ ok: true })

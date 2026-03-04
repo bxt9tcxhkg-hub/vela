@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import i18n, { SUPPORTED_LANGUAGES } from '../i18n'
 import { EmailConnectionWizard, type EmailConnection } from '../components/EmailConnectionWizard'
 import { useVelaStore } from '../store/useVelaStore'
 import type { OperationMode } from '../store/useVelaStore'
@@ -32,6 +34,10 @@ export function SettingsPage() {
   const [velaName, setVelaName] = useState('Vela')
   const [systemPrompt, setSystemPrompt] = useState('Hilfsbereit, präzise, auf Deutsch')
   const [personalitySaveStatus, setPersonalitySaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+
+  const { t } = useTranslation()
+  // Language state
+  const [language, setLanguage] = useState<string>('auto')
 
   // Email connections state
   const [emailConnections, setEmailConnections] = useState<EmailConnection[]>([])
@@ -74,6 +80,15 @@ export function SettingsPage() {
       .then(r => r.json())
       .then((data: { connections: EmailConnection[] }) => {
         setEmailConnections(data.connections ?? [])
+      })
+      .catch(() => {})
+    fetch('http://localhost:3000/api/settings')
+      .then(r => r.json())
+      .then((data: { language?: string }) => {
+        if (data.language) {
+          setLanguage(data.language)
+          if (data.language !== 'auto') void i18n.changeLanguage(data.language)
+        }
       })
       .catch(() => {})
   }, [])
@@ -367,6 +382,34 @@ export function SettingsPage() {
           >
             {models.map((m) => (
               <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
+          </select>
+        </section>
+
+        {/* Sprache / Language */}
+        <section>
+          <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">{t('settings.language.label')}</h2>
+          <select
+            value={language}
+            onChange={async e => {
+              const lang = e.target.value
+              setLanguage(lang)
+              if (lang === 'auto') {
+                void i18n.changeLanguage(navigator.language.split('-')[0])
+              } else {
+                void i18n.changeLanguage(lang)
+              }
+              await fetch('http://localhost:3000/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ language: lang }),
+              })
+            }}
+            className="bg-warm border border-sand rounded-xl px-4 py-2 text-ink text-sm focus:outline-none focus:border-sky"
+          >
+            <option value="auto">{t('settings.language.auto')}</option>
+            {Object.entries(SUPPORTED_LANGUAGES).map(([code, label]) => (
+              <option key={code} value={code}>{label}</option>
             ))}
           </select>
         </section>

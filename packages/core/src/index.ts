@@ -18,3 +18,6 @@ export { OllamaProvider } from './ai/ollama.js'
 // Permission-System
 export { PermissionManager, permissionManager, PERMISSION_LABELS, InMemoryPermissionStore } from './skills/permissions.js'
 export type { PermissionStore, PermissionGrant, PermissionRequest } from './skills/permissions.js'
+
+export { SkillRegistry, skillRegistry } from './skills/registry.js'
+export type { RegistrySkill, RegistryIndex } from './skills/registry.js'

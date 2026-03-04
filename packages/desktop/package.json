@@ -26,7 +26,8 @@
     "electron-builder": "^25.1.8",
     "typescript": "^5.4.0",
     "wait-on": "^7.2.0",
-    "electron-builder-squirrel-windows": "^25.1.8"
+    "electron-builder-squirrel-windows": "^25.1.8",
+    "@electron/notarize": "^2.5.0"
   },
   "build": {
     "appId": "ai.vela.app",
@@ -62,7 +63,7 @@
     ],
     "mac": {
       "category": "public.app-category.productivity",
-      "hardenedRuntime": false,
+      "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "identity": null,
       "target": [
@@ -80,7 +81,9 @@
             "arm64"
           ]
         }
-      ]
+      ],
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "win": {
       "target": [
@@ -128,7 +131,8 @@
       "owner": "bxt9tcxhkg-hub",
       "repo": "vela",
       "releaseType": "release"
-    }
+    },
+    "afterSign": "../../scripts/notarize.js"
   },
   "author": {
     "name": "Vela Contributors",

@@ -8,7 +8,12 @@ const navItems = [
   { to: '/settings', label: 'Einstellungen', icon: '⚙️' },
 ]
 
-export function Sidebar() {
+export function Sidebar({ showMarketplace = false }: { showMarketplace?: boolean }) {
+  const items = [
+    ...navItems,
+    ...(showMarketplace ? [{ to: '/marketplace', label: 'Marketplace', icon: '🏪' }] : []),
+  ]
+
   return (
     <>
       {/* Desktop Sidebar */}
@@ -26,7 +31,7 @@ export function Sidebar() {
 
         {/* Nav */}
         <nav className="flex-1 px-3">
-          {navItems.map((item) => (
+          {items.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -58,7 +63,7 @@ export function Sidebar() {
 
       {/* Mobile Bottom Tab Bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-warm border-t border-sand flex">
-        {navItems.map((item) => (
+        {items.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

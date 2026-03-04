@@ -42,14 +42,44 @@ jobs:
       - name: Build all packages
         run: pnpm build
 
+      # macOS: Certificate aus GitHub Secrets importieren
+      - name: Import Apple Certificate (macOS only)
+        if: matrix.platform == 'mac' && env.APPLE_CERTIFICATE != ''
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          CERTIFICATE_PATH=$RUNNER_TEMP/certificate.p12
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERTIFICATE_PATH"
+          security create-keychain -p "" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -k "$KEYCHAIN_PATH" -T /usr/bin/codesign
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
+
       - name: Build & publish Electron app (${{ matrix.platform }})
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # macOS Code-Signing deaktiviert (kein Apple Developer Account)
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+          # macOS Code-Signing (nur aktiv wenn Secrets gesetzt)
+          CSC_LINK: ${{ secrets.APPLE_CERTIFICATE }}
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ matrix.platform == 'mac' && secrets.APPLE_CERTIFICATE != '' }}
+          # Notarisierung
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           cd packages/desktop
           pnpm dist:${{ matrix.platform }} --publish=always
+
+      - name: Cleanup Keychain (macOS only)
+        if: matrix.platform == 'mac' && always()
+        run: |
+          if [ -f "$RUNNER_TEMP/build.keychain" ]; then
+            security delete-keychain "$RUNNER_TEMP/build.keychain" || true
+          fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -81,11 +111,15 @@ jobs:
 
             ### Installation
             - **Windows**: Lade `vela-setup-*.exe` herunter
-            - **macOS**: Lade `Vela-*.dmg` herunter
+            - **macOS**: Lade `Vela-*.dmg` herunter *(Code-signiert & notarisiert — kein Gatekeeper-Dialog)*
             - **Linux**: Lade `Vela-*.AppImage` herunter
 
             ### Was ist neu
             Siehe [CHANGELOG](https://github.com/bxt9tcxhkg-hub/vela/blob/main/CHANGELOG.md)
+
+            ### macOS Code-Signing
+            Die macOS-Version ist mit einem Apple Developer ID Certificate signiert und notarisiert.
+            `spctl --assess --verbose Vela.app` gibt `accepted` zurück.
           draft: false
           prerelease: false
           generate_release_notes: true

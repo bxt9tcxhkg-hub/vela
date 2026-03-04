@@ -1,12 +1,32 @@
 import React, { useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { VelaProvider } from './store/useVelaStore'
+import { VelaProvider, useVelaStore } from './store/useVelaStore'
 import type { OperationMode } from './store/useVelaStore'
 import { Sidebar } from './components/Sidebar'
 import { ChatPage } from './pages/ChatPage'
 import { ActivityPage } from './pages/ActivityPage'
 import { SettingsPage } from './pages/SettingsPage'
 import OnboardingPage from './pages/OnboardingPage'
+import { MarketplacePage } from './pages/MarketplacePage'
+
+function AppRoutes() {
+  const { state } = useVelaStore()
+  const isExpert = state.mode === 'expert' || localStorage.getItem('vela_mode') === 'cloud'
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-gray-950 pb-16 md:pb-0">
+      <Sidebar showMarketplace={isExpert} />
+      <main className="flex-1 overflow-y-auto">
+        <Routes>
+          <Route path="/"           element={<ChatPage />} />
+          <Route path="/activity"   element={<ActivityPage />} />
+          <Route path="/settings"   element={<SettingsPage />} />
+          {isExpert && <Route path="/marketplace" element={<MarketplacePage />} />}
+        </Routes>
+      </main>
+    </div>
+  )
+}
 
 export default function App() {
   const [onboarded, setOnboarded] = useState<boolean>(
@@ -28,16 +48,7 @@ export default function App() {
   return (
     <VelaProvider>
       <BrowserRouter>
-        <div className="flex h-screen overflow-hidden bg-gray-950 pb-16 md:pb-0">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto">
-            <Routes>
-              <Route path="/" element={<ChatPage />} />
-              <Route path="/activity" element={<ActivityPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-            </Routes>
-          </main>
-        </div>
+        <AppRoutes />
       </BrowserRouter>
     </VelaProvider>
   )
