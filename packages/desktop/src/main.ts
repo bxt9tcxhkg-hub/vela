@@ -21,7 +21,7 @@ function startServer(): void {
   }
 
   serverProcess = spawn(process.execPath, [serverPath], {
-    env:   { ...process.env, PORT: '3000', NODE_ENV: 'production' },
+    env:   { ...process.env as Record<string, string>, PORT: '3000', NODE_ENV: 'production' },
     stdio: 'pipe',
   })
 
@@ -57,7 +57,7 @@ function createWindow(): void {
   // Fenster erst zeigen wenn bereit (verhindert weißen Flash)
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show()
-    setupAutoUpdater(mainWindow)
+    setupAutoUpdater(mainWindow!)
   })
 
   if (isDev) {

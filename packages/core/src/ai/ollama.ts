@@ -1,7 +1,8 @@
 // Ollama Provider – lokaler LLM-Betrieb (kein API-Key erforderlich)
 // Kommuniziert mit dem Ollama-Dienst auf localhost:11434
 
-import type { AIProvider, CompletionOptions, CompletionResult, StreamChunk, Message } from '../types/index.js'
+import type { AIProvider } from './provider.js'
+import type { CompletionOptions, CompletionResult, StreamChunk, Message } from '../types/index.js'
 
 const DEFAULT_BASE_URL = 'http://localhost:11434'
 const DEFAULT_MODEL    = 'llama3.1:8b'
@@ -16,8 +17,8 @@ interface OllamaChatRequest {
   messages: OllamaMessage[]
   stream: boolean
   options?: {
-    temperature?: number
-    num_predict?: number
+    temperature?: number | undefined
+    num_predict?: number | undefined
   }
 }
 

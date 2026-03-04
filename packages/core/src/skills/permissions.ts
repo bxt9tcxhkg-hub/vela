@@ -14,7 +14,7 @@ export interface PermissionRequest {
   skill:       string
   permission:  SkillPermission
   reason:      string          // Was der Skill damit tut, in Laien-Sprache
-  riskNote?:   string          // Optionaler Risikohinweis
+  riskNote?:   string | undefined   // Optionaler Risikohinweis
 }
 
 // Lesbare Beschreibungen pro Permission
@@ -62,10 +62,12 @@ export class PermissionManager {
     }
 
     const label = PERMISSION_LABELS[req.permission]
+    const riskNote = req.riskNote ?? (label.risk === 'high' ? '⚠ Diese Berechtigung hat hohe Auswirkungen.' : undefined)
     const confirmed = await this.onRequest({
-      ...req,
-      reason:   req.reason || label.description,
-      riskNote: req.riskNote ?? (label.risk === 'high' ? '⚠ Diese Berechtigung hat hohe Auswirkungen.' : undefined),
+      skill:      req.skill,
+      permission: req.permission,
+      reason:     req.reason || label.description,
+      ...(riskNote !== undefined ? { riskNote } : {}),
     })
 
     if (confirmed) {

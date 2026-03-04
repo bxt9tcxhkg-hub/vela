@@ -2,8 +2,8 @@
 // Einheitliche Schnittstelle für den Rest der Plattform.
 // Der Modus kann jederzeit gewechselt werden.
 
-import type { AIProvider, CompletionOptions, CompletionResult, StreamChunk } from '../types/index.js'
-import type { Message } from '../types/index.js'
+import type { AIProvider } from './provider.js'
+import type { CompletionOptions, CompletionResult, StreamChunk, Message } from '../types/index.js'
 import { OllamaProvider } from './ollama.js'
 
 export type OperationMode = 'local' | 'cloud'

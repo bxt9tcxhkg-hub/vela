@@ -13,10 +13,10 @@ export async function chatGemini(
   systemPrompt?: string,
 ): Promise<string> {
   const genAI = new GoogleGenerativeAI(apiKey)
-  const gModel = genAI.getGenerativeModel({
-    model,
-    systemInstruction: systemPrompt,
-  })
+  const modelParams = systemPrompt
+    ? { model, systemInstruction: systemPrompt }
+    : { model }
+  const gModel = genAI.getGenerativeModel(modelParams)
 
   // Gemini braucht alternierend user/model Rollen
   // Letztes user-Message separat als aktuelle Anfrage
