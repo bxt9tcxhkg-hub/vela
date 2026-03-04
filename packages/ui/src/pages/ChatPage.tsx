@@ -10,13 +10,16 @@ function randomId() {
   return Math.random().toString(36).slice(2)
 }
 
-const API_BASE = (() => {
+const API_BASES = (() => {
   const override = localStorage.getItem('vela_api_base')
-  if (override) return override
-  const { protocol, hostname, port, origin } = window.location
-  if (hostname === 'localhost' || hostname === '127.0.0.1') return `${protocol}//${hostname}:3000`
-  if (port === '5173' || port === '4173') return `${protocol}//${hostname}:3000`
-  return origin
+  if (override) return [override]
+
+  const { protocol, hostname, origin } = window.location
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return [`${protocol}//${hostname}:3000`, `${protocol}//${hostname}:3100`, `${protocol}//${hostname}:3001`]
+  }
+
+  return [origin]
 })()
 
 export function ChatPage() {
@@ -108,11 +111,11 @@ export function ChatPage() {
   // Poll notifications
   React.useEffect(() => {
     const poll = () => {
-      fetch(`${API_BASE}/api/preferences/suggestions`)
+      fetch(`${API_BASES[0]}/api/preferences/suggestions`)
         .then(r => r.json() as Promise<{suggestions: typeof suggestions}>)
         .then(d => setSuggestions(d.suggestions))
         .catch(() => {})
-      fetch(`${API_BASE}/api/notifications`)
+      fetch(`${API_BASES[0]}/api/notifications`)
         .then(r => r.json() as Promise<{notifications: typeof notifications; unread: number}>)
         .then(d => { setNotifications(d.notifications); setUnreadCount(d.unread) })
         .catch(() => {})
@@ -124,7 +127,7 @@ export function ChatPage() {
 
   // Load templates
   React.useEffect(() => {
-    fetch(`${API_BASE}/api/templates`)
+    fetch(`${API_BASES[0]}/api/templates`)
       .then(r => r.json() as Promise<{templates: typeof templates}>)
       .then(d => setTemplates(d.templates))
       .catch(() => {})
@@ -154,12 +157,12 @@ export function ChatPage() {
   }
 
   async function confirmSuggestion(id: string) {
-    await fetch(`${API_BASE}/api/preferences/suggestions/${id}/confirm`, { method: 'POST' })
+    await fetch(`${API_BASES[0]}/api/preferences/suggestions/${id}/confirm`, { method: 'POST' })
     setSuggestions(prev => prev.filter(s => s.id !== id))
   }
 
   async function rejectSuggestion(id: string) {
-    await fetch(`${API_BASE}/api/preferences/suggestions/${id}/reject`, { method: 'POST' })
+    await fetch(`${API_BASES[0]}/api/preferences/suggestions/${id}/reject`, { method: 'POST' })
     setSuggestions(prev => prev.filter(s => s.id !== id))
   }
 
@@ -223,11 +226,25 @@ export function ChatPage() {
     const velaId = randomId()
 
     try {
-      const response = await fetch(`${API_BASE}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages }),
-      })
+      let response: Response | null = null
+      let lastError: unknown = null
+
+      for (const base of API_BASES) {
+        try {
+          response = await fetch(`${base}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: apiMessages }),
+          })
+          if (response.ok) break
+        } catch (err) {
+          lastError = err
+        }
+      }
+
+      if (!response) {
+        throw (lastError instanceof Error ? lastError : new Error('API nicht erreichbar'))
+      }
 
       if (!response.ok) {
         const errData = await response.json() as { error?: string }
