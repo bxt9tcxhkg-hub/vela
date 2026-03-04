@@ -2,7 +2,7 @@
   "name": "vela",
   "version": "0.1.0",
   "private": true,
-  "description": "Personal AI agent platform \u2013 secure, accessible, self-hosted",
+  "description": "Personal AI agent platform – secure, accessible, self-hosted",
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
@@ -13,12 +13,12 @@
     "server": "turbo run dev --filter=@vela/server"
   },
   "devDependencies": {
-    "turbo": "^2.0.0",
-    "typescript": "^5.4.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^9.0.0",
-    "prettier": "^3.2.0"
+    "prettier": "^3.2.0",
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0"
   },
   "engines": {
     "node": ">=20.0.0",
@@ -34,5 +34,8 @@
       "react-i18next",
       "i18next-browser-languagedetector"
     ]
+  },
+  "dependencies": {
+    "node-cron": "^4.2.1"
   }
 }
