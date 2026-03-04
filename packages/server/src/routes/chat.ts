@@ -1,6 +1,8 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
+import { chatGroq } from '../ai/groq.js'
+import { buildSystemPrompt, type UserLevel, type BackendMode } from '../prompts/builder.js'
 import { config } from '../config.js'
 import { webSearchSkill } from '../skills/web-search.js'
 
@@ -65,8 +67,20 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
     const userMessageText = lastUserMessage?.content ?? ''
     const searchQuery = lastUserMessage ? needsWebSearch(userMessageText) : null
 
-    const systemPrompt = process.env.VELA_SYSTEM_PROMPT ??
-      `Du bist ${process.env.VELA_NAME ?? 'Vela'}, ein persönlicher KI-Assistent. Du bist hilfsbereit, präzise und antwortest auf Deutsch. Du handelst niemals ohne Bestätigung des Nutzers bei wichtigen Aktionen.`
+    const systemPrompt = process.env.VELA_SYSTEM_PROMPT
+      ? process.env.VELA_SYSTEM_PROMPT
+      : (() => {
+          const vars: import('../prompts/builder.js').PromptVars = {
+            language: process.env.VELA_PREF_LANGUAGE ?? 'Deutsch',
+            tone: process.env.VELA_PREF_TONE ?? 'einfach',
+            purpose: process.env.VELA_PREF_PURPOSE ?? 'alltag',
+            level: (process.env.VELA_PREF_LEVEL ?? 'laie') as UserLevel,
+            backendMode: (process.env.VELA_BACKEND === 'groq' ? 'groq' : process.env.VELA_BACKEND === 'cloud' ? 'cloud' : 'local') as BackendMode,
+          }
+          if (process.env.VELA_PREF_NAME) vars.name = process.env.VELA_PREF_NAME
+          if (process.env.DEFAULT_MODEL) vars.backendModel = process.env.DEFAULT_MODEL
+          return buildSystemPrompt(vars)
+        })()
 
     let activeSystemPrompt = systemPrompt
     let skillUsed: string | null = null
@@ -83,17 +97,23 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
       }
     }
 
-    const response = await client.messages.create({
-      model: process.env.DEFAULT_MODEL ?? 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      system: activeSystemPrompt,
-      messages: body.messages,
-    })
+    const activeBackend = process.env.VELA_BACKEND ?? 'anthropic'
+    let text: string
 
-    const text = response.content
-      .filter((b) => b.type === 'text')
-      .map((b) => (b as { type: 'text'; text: string }).text)
-      .join('')
+    if (activeBackend === 'groq') {
+      text = await chatGroq(body.messages, activeSystemPrompt)
+    } else {
+      const response = await client.messages.create({
+        model: process.env.DEFAULT_MODEL ?? 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        system: activeSystemPrompt,
+        messages: body.messages,
+      })
+      text = response.content
+        .filter((b) => b.type === 'text')
+        .map((b) => (b as { type: 'text'; text: string }).text)
+        .join('')
+    }
 
     // Build activity entry
     let activity: ActivityEntry

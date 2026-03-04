@@ -14,17 +14,35 @@ program
   .description('Start the Vela agent server')
   .option('-p, --port <port>', 'Port to listen on', '3000')
   .option('--model <model>', 'Default AI model to use')
-  .action((options: { port: string; model?: string }) => {
-    console.log(`Starting Vela on port ${options.port}...`)
+  .option('--backend <backend>', 'AI backend to use: anthropic | groq | cloud', 'anthropic')
+  .action((options: { port: string; model?: string; backend?: string }) => {
+    if (options.backend) {
+      process.env.VELA_BACKEND = options.backend
+    }
+    console.log(`Starting Vela on port ${options.port} (backend: ${options.backend ?? 'anthropic'})...`)
     // TODO: start agent server
   })
 
 program
   .command('chat')
   .description('Start an interactive chat session')
-  .action(() => {
-    console.log('Starting interactive chat...')
+  .option('--backend <backend>', 'AI backend to use: anthropic | groq | cloud', 'anthropic')
+  .action((options: { backend?: string }) => {
+    if (options.backend) {
+      process.env.VELA_BACKEND = options.backend
+    }
+    console.log(`Starting interactive chat (backend: ${options.backend ?? 'anthropic'})...`)
     // TODO: interactive chat loop
+  })
+
+program
+  .command('onboard')
+  .description('Run the Vela onboarding assistant')
+  .action(() => {
+    console.log('Starting onboarding...')
+    const base = 'http://localhost:3000'
+    console.log(`Hardware check: GET ${base}/api/onboarding/hardware`)
+    console.log(`Onboarding chat: POST ${base}/api/onboarding/chat`)
   })
 
 program

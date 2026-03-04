@@ -1,7 +1,14 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
-type Tab = 'claude' | 'openai' | 'ollama'
+type Tab = 'claude' | 'groq' | 'openai' | 'ollama'
 type TrustLevel = 'cautious' | 'balanced' | 'autonomous'
+
+interface HardwareInfo {
+  ram_gb: number
+  has_gpu: boolean
+  free_disk_gb: number
+  recommended_backend: 'local' | 'groq' | 'cloud'
+}
 
 interface OnboardingPageProps {
   onComplete: () => void
@@ -32,19 +39,39 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
   const [step, setStep] = useState(1)
   const [tab, setTab] = useState<Tab>('claude')
   const [claudeKey, setClaudeKey] = useState('')
+  const [groqKey, setGroqKey] = useState('')
   const [openaiKey, setOpenaiKey] = useState('')
   const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [testError, setTestError] = useState('')
   const [trust, setTrust] = useState<TrustLevel>('cautious')
+  const [level, setLevel] = useState<'laie' | 'poweruser' | 'entwickler'>('laie')
+  const [hardware, setHardware] = useState<HardwareInfo | null>(null)
+  const [hwLoading, setHwLoading] = useState(false)
+
+  // Fetch hardware info on mount
+  useEffect(() => {
+    setHwLoading(true)
+    fetch('http://localhost:3000/api/onboarding/hardware')
+      .then((r) => r.json())
+      .then((data: HardwareInfo) => {
+        setHardware(data)
+        // Auto-select recommended tab
+        if (data.recommended_backend === 'groq') setTab('groq')
+        else if (data.recommended_backend === 'local') setTab('ollama')
+        else setTab('claude')
+      })
+      .catch(() => {})
+      .finally(() => setHwLoading(false))
+  }, [])
 
   async function testConnection() {
     setTestStatus('loading')
     setTestError('')
     try {
-      // Save key first
       const body: Record<string, string> = {}
       if (tab === 'claude' && claudeKey) body.anthropicKey = claudeKey
       if (tab === 'openai' && openaiKey) body.openaiKey = openaiKey
+      if (tab === 'groq' && groqKey) body.groqKey = groqKey
       if (Object.keys(body).length > 0) {
         await fetch('http://localhost:3000/api/settings', {
           method: 'POST',
@@ -52,6 +79,13 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
           body: JSON.stringify(body),
         })
       }
+      // Set backend
+      const backendMap: Record<Tab, string> = { claude: 'anthropic', groq: 'groq', openai: 'openai', ollama: 'local' }
+      await fetch('http://localhost:3000/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ backend: backendMap[tab] }),
+      })
       const res = await fetch('http://localhost:3000/api/health')
       if (res.ok) {
         setTestStatus('success')
@@ -66,9 +100,14 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
   }
 
   async function finish() {
-    // Save trust level & complete
     localStorage.setItem('vela_trust', trust)
     localStorage.setItem('vela_onboarded', 'true')
+    // Persist level preference to server
+    await fetch('http://localhost:3000/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prefLevel: level }),
+    }).catch(() => {})
     onComplete()
   }
 
@@ -101,6 +140,19 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
                 Dein persönlicher KI-Agent. Richte ihn in 3 Schritten ein.
               </p>
             </div>
+            {/* Hardware Badge */}
+            {hardware && (
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-warm border border-sand rounded-xl text-earth text-sm">
+                <span>💻</span>
+                <span>{hardware.ram_gb} GB RAM</span>
+                {hardware.has_gpu && <span>· GPU ✓</span>}
+                <span>·</span>
+                <span className={hardware.recommended_backend === 'local' ? 'text-green-600' : hardware.recommended_backend === 'groq' ? 'text-sky' : 'text-bark'}>
+                  {hardware.recommended_backend === 'local' ? '✓ Lokal empfohlen' : hardware.recommended_backend === 'groq' ? '⚡ Groq empfohlen' : '☁ Cloud empfohlen'}
+                </span>
+              </div>
+            )}
+            {hwLoading && <p className="text-earth text-sm">Hardware wird erkannt...</p>}
             <button
               onClick={() => setStep(2)}
               className="mt-4 inline-flex items-center gap-2 px-8 py-4 bg-sky text-white font-medium rounded-2xl hover:bg-sky/90 transition-all shadow-sm text-lg"
@@ -118,19 +170,24 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
                 KI-Modell verbinden
               </h1>
               <p className="text-earth text-sm">Verbinde Vela mit deinem bevorzugten KI-Anbieter.</p>
+              {hardware && (
+                <p className="text-sky text-xs mt-1">
+                  ⚡ Empfehlung für dein System: <strong>{hardware.recommended_backend === 'local' ? 'Lokal (Ollama)' : hardware.recommended_backend === 'groq' ? 'Groq (kostenlos, schnell)' : 'Cloud (Anthropic/OpenAI)'}</strong>
+                </p>
+              )}
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 bg-warm border border-sand rounded-xl p-1">
-              {(['claude', 'openai', 'ollama'] as Tab[]).map((t) => (
+            <div className="flex gap-1 bg-warm border border-sand rounded-xl p-1 flex-wrap">
+              {(['claude', 'groq', 'openai', 'ollama'] as Tab[]).map((t) => (
                 <button
                   key={t}
                   onClick={() => { setTab(t); setTestStatus('idle') }}
-                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all min-w-0 ${
                     tab === t ? 'bg-white text-ink shadow-sm' : 'text-earth hover:text-ink'
                   }`}
                 >
-                  {t === 'claude' ? 'Anthropic Claude' : t === 'openai' ? 'OpenAI GPT-4' : 'Lokales Modell (Ollama)'}
+                  {t === 'claude' ? 'Anthropic' : t === 'openai' ? 'OpenAI' : t === 'groq' ? 'Groq ⚡' : 'Ollama'}
                 </button>
               ))}
             </div>
@@ -149,13 +206,29 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
                       className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
                     />
                   </label>
-                  <a
-                    href="https://console.anthropic.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sky text-xs hover:underline"
-                  >
+                  <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" className="text-sky text-xs hover:underline">
                     ↗ API Key erstellen auf console.anthropic.com
+                  </a>
+                </>
+              )}
+              {tab === 'groq' && (
+                <>
+                  <div className="bg-sky/10 border border-sky/20 rounded-xl px-4 py-3 text-sm text-ink">
+                    <p className="font-medium mb-1">⚡ Groq — kostenlos & sehr schnell</p>
+                    <p className="text-earth text-xs">Vela sendet deine Anfragen an Groqs Server. Groq speichert keine Konversationen dauerhaft. Ideal wenn dein Computer weniger Leistung hat.</p>
+                  </div>
+                  <label className="block">
+                    <span className="text-ink text-sm font-medium mb-1.5 block">GROQ_API_KEY</span>
+                    <input
+                      type="password"
+                      value={groqKey}
+                      onChange={(e) => setGroqKey(e.target.value)}
+                      placeholder="gsk_..."
+                      className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+                    />
+                  </label>
+                  <a href="https://console.groq.com" target="_blank" rel="noopener noreferrer" className="text-sky text-xs hover:underline">
+                    ↗ Kostenlosen API Key erstellen auf console.groq.com
                   </a>
                 </>
               )}
@@ -176,12 +249,7 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
                   <p className="text-earth text-sm">
                     Ollama läuft lokal – kein API Key nötig. Stelle sicher, dass Ollama auf deinem System läuft.
                   </p>
-                  <a
-                    href="https://ollama.com/download"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sky text-xs hover:underline"
-                  >
+                  <a href="https://ollama.com/download" target="_blank" rel="noopener noreferrer" className="text-sky text-xs hover:underline">
                     ↗ Ollama installieren auf ollama.com
                   </a>
                 </div>
@@ -189,7 +257,7 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
             </div>
 
             {/* Test connection */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <button
                 onClick={testConnection}
                 disabled={testStatus === 'loading'}
@@ -222,6 +290,30 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
                 Vertrauen konfigurieren
               </h1>
               <p className="text-earth text-sm">Wie selbstständig darf Vela handeln?</p>
+            </div>
+
+            {/* Level Selection */}
+            <div>
+              <p className="text-ink text-sm font-medium mb-2">Wie vertraut bist du mit KI-Tools?</p>
+              <div className="flex gap-2">
+                {([
+                  { value: 'laie' as const, label: '🌱 Neu dabei' },
+                  { value: 'poweruser' as const, label: '⚡ Kenne mich aus' },
+                  { value: 'entwickler' as const, label: '🛠 Bin Entwickler' },
+                ]).map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setLevel(opt.value)}
+                    className={`flex-1 py-2 px-2 rounded-xl text-xs font-medium border transition-all ${
+                      level === opt.value
+                        ? 'bg-sky text-white border-sky shadow-sm'
+                        : 'bg-warm text-earth border-sand hover:border-bark'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="space-y-3">

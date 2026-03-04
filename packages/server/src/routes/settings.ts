@@ -22,6 +22,13 @@ function writeEnvKey(key: string, value: string): void {
 interface SettingsBody {
   anthropicKey?: string
   openaiKey?: string
+  groqKey?: string
+  backend?: string
+  prefLevel?: string
+  prefLanguage?: string
+  prefTone?: string
+  prefPurpose?: string
+  prefName?: string
   model?: string
   systemPrompt?: string
   velaName?: string
@@ -34,10 +41,17 @@ export async function settingsRoutes(fastify: FastifyInstance) {
   fastify.get('/api/settings', async (_req, reply) => {
     const body = JSON.stringify({
       hasAnthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
+      hasGroqKey: Boolean(process.env.GROQ_API_KEY),
       model: process.env.DEFAULT_MODEL ?? 'claude-haiku-4-5-20251001',
       velaName: process.env.VELA_NAME ?? 'Vela',
       systemPrompt: process.env.VELA_SYSTEM_PROMPT ?? '',
       hasGmailConfig: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_REFRESH_TOKEN),
+      prefLevel: process.env.VELA_PREF_LEVEL ?? 'laie',
+      prefLanguage: process.env.VELA_PREF_LANGUAGE ?? 'Deutsch',
+      prefTone: process.env.VELA_PREF_TONE ?? 'einfach',
+      prefPurpose: process.env.VELA_PREF_PURPOSE ?? 'alltag',
+      prefName: process.env.VELA_PREF_NAME ?? '',
+      backend: process.env.VELA_BACKEND ?? 'anthropic',
     })
     return reply
       .header('Content-Type', 'application/json')
@@ -47,8 +61,29 @@ export async function settingsRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post<{ Body: SettingsBody }>('/api/settings', async (req, reply) => {
-    const { anthropicKey, model, systemPrompt, velaName, googleClientId, googleClientSecret, googleRefreshToken } = req.body ?? {}
+    const { anthropicKey, openaiKey, groqKey, backend, prefLevel, prefLanguage, prefTone, prefPurpose, prefName, model, systemPrompt, velaName, googleClientId, googleClientSecret, googleRefreshToken } = req.body ?? {}
 
+    if (groqKey?.trim()) {
+      writeEnvKey('GROQ_API_KEY', groqKey.trim())
+    }
+    if (backend?.trim()) {
+      writeEnvKey('VELA_BACKEND', backend.trim())
+    }
+    if (prefLevel?.trim()) {
+      writeEnvKey('VELA_PREF_LEVEL', prefLevel.trim())
+    }
+    if (prefLanguage?.trim()) {
+      writeEnvKey('VELA_PREF_LANGUAGE', prefLanguage.trim())
+    }
+    if (prefTone?.trim()) {
+      writeEnvKey('VELA_PREF_TONE', prefTone.trim())
+    }
+    if (prefPurpose?.trim()) {
+      writeEnvKey('VELA_PREF_PURPOSE', prefPurpose.trim())
+    }
+    if (prefName !== undefined) {
+      writeEnvKey('VELA_PREF_NAME', prefName.trim())
+    }
     if (anthropicKey?.trim()) {
       writeEnvKey('ANTHROPIC_API_KEY', anthropicKey.trim())
     }

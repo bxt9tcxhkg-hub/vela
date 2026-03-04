@@ -16,6 +16,7 @@
     "@vela/core": "workspace:*",
     "dotenv": "^16.4.0",
     "fastify": "^4.27.0",
+    "groq-sdk": "^0.37.0",
     "zod": "^3.22.0"
   },
   "devDependencies": {
