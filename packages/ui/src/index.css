@@ -36,6 +36,7 @@
 
 
   input, textarea, select {
+    background-color: var(--surface2) !important;
     color: var(--text) !important;
     -webkit-text-fill-color: var(--text) !important;
     caret-color: var(--text) !important;
