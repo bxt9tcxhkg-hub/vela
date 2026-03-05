@@ -112,6 +112,40 @@ export async function channelRoutes(fastify: FastifyInstance): Promise<void> {
     }
   )
 
+
+  // Discord interaction endpoint (inbound messages via Interactions URL)
+  fastify.post('/api/channels/discord/interactions', async (req, reply) => {
+    const body = req.body as {
+      type: number
+      token?: string
+      data?: { options?: Array<{ value: string }> }
+      channel_id?: string
+    }
+
+    // Type 1 = PING (Discord verification)
+    if (body.type === 1) {
+      return reply.send({ type: 1 })
+    }
+
+    // Type 2 = APPLICATION_COMMAND
+    const userText = body.data?.options?.[0]?.value ?? ''
+    if (!userText) return reply.send({ type: 4, data: { content: 'Keine Eingabe.' } })
+
+    try {
+      const chatRes = await fetch('http://localhost:3000/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [{ role: 'user', content: userText }] }),
+      })
+      const data = await chatRes.json() as { text?: string }
+      const responseText = data.text ?? 'Keine Antwort'
+      // Respond immediately (Discord requires < 3s)
+      return reply.send({ type: 4, data: { content: responseText.slice(0, 2000) } })
+    } catch {
+      return reply.send({ type: 4, data: { content: 'Fehler beim Verarbeiten der Anfrage.' } })
+    }
+  })
+
   // Telegram webhook receiver (inbound messages)
   fastify.post<{ Params: { token: string } }>(
     '/api/channels/telegram/webhook/:token',
