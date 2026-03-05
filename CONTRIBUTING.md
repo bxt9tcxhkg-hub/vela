@@ -47,7 +47,7 @@ To contribute a skill to the official library:
 ## Security Vulnerabilities
 
 Please do **not** open public issues for security vulnerabilities.
-Email: security@vela.ai (placeholder)
+Email: security@vela.ai
 
 ## License
 

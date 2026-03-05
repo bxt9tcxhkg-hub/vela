@@ -53,3 +53,13 @@ jobs:
 
       - name: Build
         run: pnpm turbo build --continue
+
+      - name: Test
+        run: pnpm turbo test --filter=@vela/core
+
+  md-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run MD Guard
+        run: python3 scripts/md_guard.py .
