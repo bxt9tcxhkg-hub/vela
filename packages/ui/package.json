@@ -1,6 +1,6 @@
 {
   "name": "@vela/ui",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Vela web dashboard – React frontend",
   "private": true,
   "scripts": {

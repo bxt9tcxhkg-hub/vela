@@ -1,7 +1,7 @@
 {
   "name": "@vela/cli",
-  "version": "0.1.0",
-  "description": "Vela CLI \u2013 command line interface for expert users",
+  "version": "0.2.0",
+  "description": "Vela CLI – command line interface for expert users",
   "bin": {
     "vela": "./dist/cli.js"
   },

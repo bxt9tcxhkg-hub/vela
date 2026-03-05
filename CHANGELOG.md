@@ -7,6 +7,40 @@ Versionierung: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [0.2.0] – 2026-03-06
+
+### Neu
+- **OIDC / SSO Login** — OpenID Connect Support (Google, Azure AD, Okta)
+  - Routes: `/api/auth/oidc/login`, `/api/auth/oidc/callback`, `/api/auth/oidc/config`
+  - Setup-Guide: `docs/oidc-setup.md`
+- **Workspace-Isolation** — Isolierte Arbeitsbereiche pro User
+  - Vollständige REST-API: Create, List, Detail, Member-Management
+  - Owner-Rollen-Guard auf allen Mutationen
+- **Email Inbound Trigger** — IMAP-Polling → Vela Chat
+  - Manuelle und automatische Abfrage (alle 5 Minuten)
+  - `email_trigger_log` DB-Tabelle
+- **Discord Inbound Trigger** — Interactions Endpoint für Slash Commands
+  - `POST /api/channels/discord/interactions`
+  - Setup-Guide: `docs/discord-interactions-setup.md`
+- **Low-Spec Setup** — Vela auf schwacher Hardware (ab 4 GB RAM)
+  - `docker-compose.low-spec.yml` mit 512 MB Memory-Limit
+  - Empfehlungen für Ollama-Modelle nach RAM
+  - `docs/low-spec-setup.md`
+- **`.env.example`** — vollständige Vorlage für alle Umgebungsvariablen
+
+### Verbessert
+- Webhook-Trigger leitet Nachrichten jetzt wirklich an Vela-Chat weiter (war TODO)
+- Email-Pattern im Planner erweitert (`lies meine Mails`, `schick eine Mail` werden erkannt)
+- Installer: RAM-Mindestanforderung von 8 GB → 4 GB gesenkt
+
+### Tests & Qualität
+- 31 Unit-Tests (AuditLogger, GuardrailEngine, AgentPlanner, SkillRuntime, BackendConnector)
+- MD Guard: pre-commit hook + CI-Job — blockiert Platzhalter automatisch
+- ESLint-Config für UI-Package, Lint jetzt blocking in CI
+- TypeCheck PASS für alle Packages
+
+---
+
 ## [0.1.0] – 2026-03-04
 
 ### Neu

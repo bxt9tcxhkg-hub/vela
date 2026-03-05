@@ -1,7 +1,7 @@
 {
   "name": "@vela/core",
-  "version": "0.1.0",
-  "description": "Vela agent engine \u2013 planner, memory, guardrails, skill runtime",
+  "version": "0.2.0",
+  "description": "Vela agent engine – planner, memory, guardrails, skill runtime",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

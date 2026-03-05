@@ -1,7 +1,7 @@
 {
   "name": "@vela/desktop",
-  "version": "0.1.0",
-  "description": "Vela desktop app \u2013 Electron shell",
+  "version": "0.2.0",
+  "description": "Vela desktop app – Electron shell",
   "private": true,
   "main": "dist/main.js",
   "scripts": {
@@ -31,7 +31,7 @@
   "build": {
     "appId": "ai.vela.app",
     "productName": "Vela",
-    "copyright": "Copyright \u00a9 2026 Vela Contributors",
+    "copyright": "Copyright © 2026 Vela Contributors",
     "asar": true,
     "directories": {
       "output": "release/${version}",
