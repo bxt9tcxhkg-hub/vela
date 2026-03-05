@@ -43,6 +43,10 @@ jobs:
           echo "NPM_CONFIG_HTTP_PROXY=" >> $GITHUB_ENV
           echo "NPM_CONFIG_HTTPS_PROXY=" >> $GITHUB_ENV
 
+      - name: Install Python setuptools (macOS)
+        if: matrix.platform == 'mac'
+        run: pip3 install setuptools || pip install setuptools || true
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
