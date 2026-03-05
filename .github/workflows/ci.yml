@@ -51,6 +51,9 @@ jobs:
       - name: Type check
         run: pnpm tsc --noEmit || true
 
+      - name: Build @vela/core first
+        run: pnpm --filter @vela/core build
+
       - name: Build
         run: pnpm turbo build --continue
 
