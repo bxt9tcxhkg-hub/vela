@@ -51,11 +51,54 @@ export async function settingsRoutes(fastify: FastifyInstance) {
       .send(body)
   })
 
+  fastify.post<{ Body: { provider: 'anthropic' | 'openai' | 'groq'; apiKey: string } }>(
+    '/api/settings/test-cloud-key',
+    async (req, reply) => {
+      const provider = req.body?.provider
+      const apiKey = req.body?.apiKey?.trim()
+      if (!provider || !apiKey) return reply.code(400).send({ ok: false, message: 'Provider und API-Key sind erforderlich.' })
+
+      try {
+        let res: Response
+
+        if (provider === 'anthropic') {
+          res = await fetch('https://api.anthropic.com/v1/models', {
+            headers: {
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01',
+            },
+          })
+        } else if (provider === 'openai') {
+          res = await fetch('https://api.openai.com/v1/models', {
+            headers: { Authorization: `Bearer ${apiKey}` },
+          })
+        } else {
+          res = await fetch('https://api.groq.com/openai/v1/models', {
+            headers: { Authorization: `Bearer ${apiKey}` },
+          })
+        }
+
+        if (!res.ok) {
+          const text = await res.text()
+          const detail = text.slice(0, 300)
+          return reply.code(400).send({ ok: false, message: `Verbindung fehlgeschlagen (${provider}): ${res.status} ${detail}` })
+        }
+
+        return reply.send({ ok: true, message: 'API-Key gültig. Verbindung erfolgreich.' })
+      } catch (err) {
+        return reply.code(500).send({ ok: false, message: err instanceof Error ? err.message : 'Netzwerkfehler beim Verbindungstest' })
+      }
+    },
+  )
+
   fastify.post<{ Body: SettingsBody }>('/api/settings', async (req, reply) => {
-    const { anthropicKey, model, systemPrompt, velaName, googleClientId, googleClientSecret, googleRefreshToken, language, groqKey } = req.body ?? {}
+    const { anthropicKey, openaiKey, model, systemPrompt, velaName, googleClientId, googleClientSecret, googleRefreshToken, language, groqKey } = req.body ?? {}
 
     if (anthropicKey?.trim()) {
       writeEnvKey('ANTHROPIC_API_KEY', anthropicKey.trim())
+    }
+    if (openaiKey?.trim()) {
+      writeEnvKey('OPENAI_API_KEY', openaiKey.trim())
     }
     if (model?.trim()) {
       writeEnvKey('DEFAULT_MODEL', model.trim())

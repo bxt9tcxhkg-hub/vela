@@ -57,6 +57,10 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
   const [canFinish,   setCanFinish]   = useState(false)
   const [cloudWarn,   setCloudWarn]   = useState(false)
   const [cloudConfirm,setCloudConfirm]= useState(false)
+  const [cloudProvider, setCloudProvider] = useState<'anthropic'|'openai'|'groq'>('anthropic')
+  const [cloudApiKey, setCloudApiKey] = useState('')
+  const [cloudTestState, setCloudTestState] = useState<'idle'|'testing'|'success'|'error'>('idle')
+  const [cloudTestMsg, setCloudTestMsg] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const didBootRef = useRef(false)
 
@@ -226,6 +230,57 @@ Alles eingerichtet${userName ? `, ${userName}` : ''}! Ich bin bereit. 🚀`)
     )
   }
 
+
+  async function testCloudKey() {
+    const key = cloudApiKey.trim()
+    if (!key) return
+    setCloudTestState('testing')
+    setCloudTestMsg('Teste Verbindung…')
+    try {
+      const res = await fetch('http://localhost:3000/api/settings/test-cloud-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: cloudProvider, apiKey: key }),
+      })
+      const data = await res.json() as { ok?: boolean; message?: string }
+      if (!res.ok || !data.ok) throw new Error(data.message ?? `Fehler ${res.status}`)
+      setCloudTestState('success')
+      setCloudTestMsg('Verbindung erfolgreich getestet.')
+    } catch (err) {
+      setCloudTestState('error')
+      setCloudTestMsg(err instanceof Error ? err.message : 'Verbindungstest fehlgeschlagen')
+    }
+  }
+
+  async function activateCloud() {
+    if (cloudTestState !== 'success') return
+    const body: Record<string, string> = {}
+    if (cloudProvider === 'anthropic') {
+      body.anthropicKey = cloudApiKey.trim()
+      body.model = 'claude-haiku-4-5-20251001'
+    } else if (cloudProvider === 'openai') {
+      body.openaiKey = cloudApiKey.trim()
+      body.model = 'gpt-4o-mini'
+    } else {
+      body.groqKey = cloudApiKey.trim()
+      body.model = 'llama-3.1-8b-instant'
+    }
+    await fetch('http://localhost:3000/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    localStorage.setItem('vela_model', cloudProvider)
+    await afterModeConfirmed('cloud')
+  }
+
+  async function continueLocalFromCloud() {
+    setMode('local')
+    localStorage.setItem('vela_mode', 'local')
+    localStorage.setItem('vela_model', 'ollama')
+    await afterModeConfirmed('local')
+  }
+
   const stageLabel: Record<string, string> = {
     intro: 'Willkommen',
     name: 'Name',
@@ -358,11 +413,12 @@ Alles eingerichtet${userName ? `, ${userName}` : ''}! Ich bin bereit. 🚀`)
           {/* Cloud Warning */}
           {cloudWarn && (
             <div className="bg-yellow-900/30 border border-yellow-600 rounded-xl p-4 space-y-3">
-              <p className="text-yellow-300 font-semibold text-sm">☁️ Cloud-Modus — kurze Info</p>
+              <p className="text-yellow-300 font-semibold text-sm">☁️ Cloud-Modus — API-Verbindung einrichten</p>
               <p className="text-gray-300 text-xs leading-relaxed">
-                Deine Nachrichten werden an externe Anbieter (Anthropic, OpenAI, Google) gesendet.
-                Vertrauliche Infos solltest du mit Bedacht teilen. Du kannst jederzeit zu Lokal wechseln.
+                Für Cloud brauchst du einen API-Key. Bei Laien wird die Config nur gespeichert,
+                wenn der Verbindungstest erfolgreich ist.
               </p>
+
               <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
                 <input
                   type="checkbox"
@@ -372,16 +428,57 @@ Alles eingerichtet${userName ? `, ${userName}` : ''}! Ich bin bereit. 🚀`)
                 />
                 Ich habe verstanden
               </label>
+
+              <select
+                value={cloudProvider}
+                onChange={e => { setCloudProvider(e.target.value as 'anthropic'|'openai'|'groq'); setCloudTestState('idle'); setCloudTestMsg('') }}
+                className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white"
+              >
+                <option value="anthropic">Anthropic (Claude)</option>
+                <option value="openai">OpenAI</option>
+                <option value="groq">Groq</option>
+              </select>
+
+              <input
+                type="password"
+                value={cloudApiKey}
+                onChange={e => { setCloudApiKey(e.target.value); setCloudTestState('idle'); setCloudTestMsg('') }}
+                placeholder="API-Key einfügen…"
+                className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white"
+              />
+
               <div className="flex gap-2">
+                <button
+                  onClick={() => void testCloudKey()}
+                  disabled={!cloudConfirm || !cloudApiKey.trim() || cloudTestState === 'testing'}
+                  className="flex-1 py-2 rounded-lg border border-blue-600 text-blue-200 hover:bg-blue-900/30 text-xs transition disabled:opacity-40"
+                >
+                  {cloudTestState === 'testing' ? 'Teste…' : 'Verbindung testen'}
+                </button>
                 <button
                   onClick={() => { setCloudWarn(false); setCloudConfirm(false) }}
                   className="flex-1 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 text-xs transition"
                 >
                   Zurück
                 </button>
+              </div>
+
+              {cloudTestMsg && (
+                <p className={`text-xs ${cloudTestState === 'success' ? 'text-green-300' : cloudTestState === 'error' ? 'text-red-300' : 'text-gray-300'}`}>
+                  {cloudTestMsg}
+                </p>
+              )}
+
+              <div className="flex gap-2">
                 <button
-                  onClick={() => void afterModeConfirmed('cloud')}
-                  disabled={!cloudConfirm}
+                  onClick={() => void continueLocalFromCloud()}
+                  className="flex-1 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 text-xs transition"
+                >
+                  Lokal fortfahren
+                </button>
+                <button
+                  onClick={() => void activateCloud()}
+                  disabled={cloudTestState !== 'success'}
                   className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-500 disabled:opacity-40 transition"
                 >
                   Cloud aktivieren
