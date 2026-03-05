@@ -7,7 +7,7 @@ import db from '../db/database.js'
 import { detectSignals } from '../lib/behaviorDetector.js'
 import { webSearchSkill } from '../skills/web-search.js'
 import { chatOllama, isOllamaAvailable, listOllamaModels } from '../ai/ollama.js'
-import { AgentPlanner } from '@vela/core'
+import { AgentPlanner, type PlannedAction } from '@vela/core'
 import { addMessage } from '../db/conversations.js'
 import { chatGemini } from '../ai/gemini.js'
 import { chatGroq, GroqRateLimitError } from '../ai/groq.js'
@@ -88,7 +88,7 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
       id: String(i), role: m.role as 'user' | 'assistant', content: m.content, timestamp: new Date(),
     }))
     const plannedActions = await planner.plan(userText, coreMessages)
-    const highRiskAction = plannedActions.find(a => a.riskLevel === 'high' && a.requiresConfirmation)
+    const highRiskAction = plannedActions.find((a: PlannedAction) => a.riskLevel === 'high' && a.requiresConfirmation)
     if (highRiskAction) {
       return reply.code(202).send({
         requiresConfirmation: true,

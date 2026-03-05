@@ -1,7 +1,7 @@
 // Marketplace Routes – Skill-Registry Browse + Install + Uninstall
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { skillRegistry } from '@vela/core'
+import { skillRegistry, type RegistrySkill } from '@vela/core'
 import { join } from 'node:path'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import db from '../db/database.js'
@@ -33,16 +33,16 @@ export async function marketplaceRoutes(fastify: FastifyInstance): Promise<void>
       ? await skillRegistry.search(query)
       : await skillRegistry.fetchAvailable()
 
-    if (filter === 'verified') skills = skills.filter(s => s.verified)
-    if (filter === 'low')      skills = skills.filter(s => s.riskLevel === 'low')
-    if (filter === 'medium')   skills = skills.filter(s => s.riskLevel === 'medium')
-    if (filter === 'high')     skills = skills.filter(s => s.riskLevel === 'high')
+    if (filter === 'verified') skills = skills.filter((s: RegistrySkill) => s.verified)
+    if (filter === 'low')      skills = skills.filter((s: RegistrySkill) => s.riskLevel === 'low')
+    if (filter === 'medium')   skills = skills.filter((s: RegistrySkill) => s.riskLevel === 'medium')
+    if (filter === 'high')     skills = skills.filter((s: RegistrySkill) => s.riskLevel === 'high')
 
     // Installierte Skills markieren
     const installed = (db.prepare('SELECT id, version FROM installed_skills').all() as InstalledRow[])
     const installedMap = new Map(installed.map(r => [r.id, r.version]))
 
-    const enriched = skills.map(s => ({
+    const enriched = skills.map((s: RegistrySkill) => ({
       ...s,
       installed:      installedMap.has(s.id),
       installedVersion: installedMap.get(s.id) ?? null,
