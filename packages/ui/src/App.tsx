@@ -49,7 +49,7 @@ function AppShell() {
     localStorage.setItem('vela_onboarded', 'true')
     localStorage.setItem('vela_mode', mode)
     localStorage.setItem('vela_trust', trustLevel)
-    localStorage.setItem('vela_model', mode === 'local' ? 'ollama' : 'claude')
+    localStorage.setItem('vela_model', 'ollama')
     setOnboarded(true)
   }
 

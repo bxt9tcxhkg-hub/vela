@@ -26,7 +26,7 @@ export function SettingsPage() {
   const { state, dispatch } = useVelaStore()
 
   // KI-Verbindung state
-  const [activeModel, setActiveModel] = useState('claude')
+  const [activeModel, setActiveModel] = useState('ollama')
   const [apiKey, setApiKey] = useState('')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')

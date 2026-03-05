@@ -202,7 +202,7 @@ Alles eingerichtet${userName ? `, ${userName}` : ''}! Ich bin bereit. 🚀`)
   async function onModeSelect(m: OperationMode) {
     setMode(m)
     localStorage.setItem('vela_mode', m)
-    localStorage.setItem('vela_model', m === 'local' ? 'ollama' : 'claude')
+    localStorage.setItem('vela_model', 'ollama')
     if (m === 'cloud') {
       setCloudWarn(true)
     } else {
