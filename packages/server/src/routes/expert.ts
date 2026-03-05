@@ -183,8 +183,18 @@ export async function expertRoutes(fastify: FastifyInstance): Promise<void> {
       if (!webhook || webhook.secret !== authorization) {
         return reply.code(401).send({ error: 'Unauthorized' })
       }
-      // TODO: enqueue message for chat processing
-      return reply.send({ ok: true, queued: req.body.message })
+      // Route webhook message through Vela chat
+      let velaResponse = ''
+      try {
+        const chatRes = await fetch('http://localhost:3000/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: [{ role: 'user', content: req.body.message }] }),
+        })
+        const data = await chatRes.json() as { text?: string }
+        velaResponse = data.text ?? ''
+      } catch { /* ignore chat errors, still ack */ }
+      return reply.send({ ok: true, queued: req.body.message, response: velaResponse })
     }
   )
   // ── 7. TOKEN USAGE ───────────────────────────────────────────────────────
