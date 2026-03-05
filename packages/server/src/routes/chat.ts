@@ -118,7 +118,7 @@ export async function chatRoutes(fastify: FastifyInstance): Promise<void> {
           hint:  'Du kannst in den Einstellungen zum Cloud-Modus wechseln.',
         })
       }
-      const model = process.env.OLLAMA_MODEL ?? 'llama3.1:8b'
+      const model = process.env.OLLAMA_MODEL ?? 'qwen2.5:7b'
       text = await chatOllama(body.messages, model, systemPrompt)
     }
 

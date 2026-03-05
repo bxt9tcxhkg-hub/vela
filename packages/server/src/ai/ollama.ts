@@ -21,7 +21,7 @@ export async function isOllamaAvailable(): Promise<boolean> {
 
 export async function chatOllama(
   messages: OlamaChatMessage[],
-  model = process.env.OLLAMA_MODEL ?? 'llama3.1:8b',
+  model = process.env.OLLAMA_MODEL ?? 'qwen2.5:7b',
   systemPrompt?: string,
 ): Promise<string> {
   const payload = {

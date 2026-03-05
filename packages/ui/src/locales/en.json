@@ -6,7 +6,7 @@
       "title": "Secure & Local",
       "tagline": "Recommended for getting started",
       "features": ["No data leaves your device", "No API key required", "Works without internet", "Free – unlimited"],
-      "requires": "Requires: Ollama + llama3.1:8b (~5 GB), min. 8 GB RAM",
+      "requires": "Requires: Ollama + qwen2.5:7b (~5 GB), min. 8 GB RAM",
       "ready": "✓ Your device is ready ({{ram}} GB RAM, Ollama active)",
       "lowRam": "⚠ Low RAM ({{ram}} GB) – will be slow",
       "noOllama": "⚠ Ollama not found – will be installed in setup"
@@ -110,7 +110,7 @@
       "titleGemini": "Available Gemini Models",
       "missingKey": "⚠ GEMINI_API_KEY not set",
       "setKey": "  export GEMINI_API_KEY=your_key",
-      "noModels": "No models installed. Install with: ollama pull llama3.1:8b",
+      "noModels": "No models installed. Install with: ollama pull qwen2.5:7b",
       "usage": "  Usage: vela chat --provider gemini --model gemini-2.0-flash"
     }
   }

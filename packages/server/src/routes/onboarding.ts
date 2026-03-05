@@ -164,7 +164,7 @@ export async function onboardingRoutes(fastify: FastifyInstance): Promise<void> 
             fallback: true, complete: false,
           })
         }
-        const model = process.env.OLLAMA_MODEL ?? 'llama3.1:8b'
+        const model = process.env.OLLAMA_MODEL ?? 'qwen2.5:7b'
         text = await chatOllama(body.messages, model, systemPrompt)
       }
       else if (provider === 'claude' || provider === 'anthropic') {
