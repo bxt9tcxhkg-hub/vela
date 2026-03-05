@@ -39,8 +39,10 @@ const SKILL_PATTERNS: Array<{
   {
     skill:    'email-reader',
     patterns: [
-      /e-?mail(s)?( lesen| prüfen| checken| anzeigen)?/i,
+      /e-?mail(s)?( lesen| lese| prüfen| checken| anzeigen| zeigen)?/i,
       /posteingang|inbox|ungelesene?/i,
+      /lies? (meine? )?mail(s)?/i,
+      /zeig (mir )?(meine? )?mail(s|s?)/i,
     ],
     riskLevel:   'medium',
     description: (_input) => 'E-Mails lesen',
@@ -51,6 +53,8 @@ const SKILL_PATTERNS: Array<{
       /e-?mail( schreiben| senden| schicken)?/i,
       /schreib(e|en)?.*(an|@)/i,
       /send(e|en)? .*mail/i,
+      /schick(e|en)? (eine? )?mail/i,
+      /mail (an|schicken|senden|schreiben)/i,
     ],
     riskLevel:   'high',
     description: (input) => `E-Mail senden: "${input.slice(0, 40)}"`,
