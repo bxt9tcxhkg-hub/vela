@@ -46,7 +46,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: pnpm turbo lint --continue || true   # Non-blocking: lint rules werden schrittweise stabilisiert
+        run: pnpm turbo lint --continue
 
       - name: Type check
         run: pnpm tsc --noEmit || true
