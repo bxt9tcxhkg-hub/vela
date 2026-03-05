@@ -21,6 +21,10 @@ import { ttsRoutes } from './routes/tts.js'
 import { authRoutes } from './routes/auth.js'
 import { subAgentRoutes } from './routes/subagents.js'
 import { channelRoutes } from './routes/channels.js'
+import { oidcRoutes } from './routes/oidc.js'
+import { workspaceRoutes } from './routes/workspaces.js'
+import { emailTriggerRoutes } from './routes/email-trigger.js'
+
 import { marketplaceRoutes } from './routes/marketplace.js'
 import { oauthRoutes } from './routes/oauth.js'
 import { onboardingRoutes } from './routes/onboarding.js'
@@ -57,6 +61,10 @@ await fastify.register(feedbackRoutes)
   await fastify.register(authRoutes)
   await fastify.register(subAgentRoutes)
   await fastify.register(channelRoutes)
+  await fastify.register(oidcRoutes)
+  await fastify.register(workspaceRoutes)
+  await fastify.register(emailTriggerRoutes)
+
 
 // Serve UI static files in production
 if (process.env.NODE_ENV === 'production') {

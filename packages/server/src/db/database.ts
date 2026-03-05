@@ -146,3 +146,32 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
 `)
+
+// Workspace Isolation
+db.exec(`
+  CREATE TABLE IF NOT EXISTS workspaces (
+    id         TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+    name       TEXT NOT NULL,
+    owner_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS workspace_members (
+    workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role         TEXT NOT NULL DEFAULT 'member',
+    PRIMARY KEY (workspace_id, user_id)
+  );
+`)
+
+// Email Inbound Trigger Log
+db.exec(`
+  CREATE TABLE IF NOT EXISTS email_trigger_log (
+    id            TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+    from_addr     TEXT NOT NULL,
+    subject       TEXT NOT NULL,
+    body_preview  TEXT,
+    vela_response TEXT,
+    processed_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`)
