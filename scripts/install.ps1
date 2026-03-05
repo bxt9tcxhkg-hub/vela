@@ -22,7 +22,7 @@ $ErrorActionPreference = "Stop"
 # ─── Konstanten ───────────────────────────────────────────────────────────────
 $VELA_VERSION     = "latest"
 $NODE_MIN_VERSION = 20
-$RAM_MIN_GB       = 8
+$RAM_MIN_GB       = 4  # Low-Spec-Modus ab 4 GB möglich (Cloud-Modus empfohlen)
 $DISK_MIN_GB      = 10
 $OLLAMA_URL       = "https://ollama.ai/download/OllamaSetup.exe"
 $NODE_URL         = "https://nodejs.org/dist/latest-v20.x/node-v20.19.0-x64.msi"
