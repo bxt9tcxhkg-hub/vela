@@ -1,4 +1,4 @@
-import { MessengerWizard } from '../components/MessengerWizard.js'
+import { MessengerWizard } from '../components/MessengerWizard.tsx'
 import { BackendSelector, type BackendMode } from '../components/BackendSelector.js'
 import React, { useState, useEffect } from 'react'
 import { Card, Button, Input, SegmentedControl } from '../components/ui'
