@@ -7,10 +7,17 @@ on:
 
 jobs:
   release-desktop:
-    name: Build Desktop App
+    name: Build Desktop App (${{ matrix.platform }})
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: windows-latest
+            platform: win
+            artifact: Vela-Setup-*.exe
+          - os: ubuntu-latest
+            platform: linux
+            artifact: Vela-*.AppImage
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -25,20 +32,47 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
+      - name: Setup Python 3.11 (node-gyp compatibility)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Linux native toolchain (C++20)
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential g++-12
+          echo "CC=gcc-12" >> $GITHUB_ENV
+          echo "CXX=g++-12" >> $GITHUB_ENV
+          echo "CXXFLAGS=-std=gnu++20" >> $GITHUB_ENV
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm build
+      - name: Build release dependencies
+        run: |
+          pnpm --filter @vela/core build
+          pnpm --filter @vela/desktop build
 
-      - name: Package desktop app
+      - name: Package desktop (Windows)
+        if: matrix.platform == 'win'
         working-directory: packages/desktop
-        run: pnpm build
+        run: pnpm dist:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package desktop (Linux)
+        if: matrix.platform == 'linux'
+        working-directory: packages/desktop
+        run: pnpm dist:linux
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: vela-${{ matrix.os }}
-          path: packages/desktop/release/
+          name: vela-${{ matrix.platform }}
+          path: |
+            packages/desktop/release/**/*
+            packages/desktop/dist/**/*
+          if-no-files-found: error
