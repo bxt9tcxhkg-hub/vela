@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { VelaProvider } from './store/useVelaStore'
 import { Sidebar } from './components/Sidebar'
@@ -7,10 +7,21 @@ import { ActivityPage } from './pages/ActivityPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 
+
+type UiTheme = 'dark' | 'light'
+type UiMode = 'simple' | 'advanced'
+
 export default function App() {
   const [onboarded, setOnboarded] = useState<boolean>(
     () => localStorage.getItem('vela_onboarded') === 'true'
   )
+  const [uiTheme] = useState<UiTheme>(() => (localStorage.getItem('vela_ui_theme') as UiTheme) || 'dark')
+  const [uiMode] = useState<UiMode>(() => (localStorage.getItem('vela_ui_mode') as UiMode) || 'simple')
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', uiTheme)
+    document.documentElement.setAttribute('data-mode', uiMode)
+  }, [uiTheme, uiMode])
 
   function completeOnboarding() {
     localStorage.setItem('vela_onboarded', 'true')
@@ -24,7 +35,7 @@ export default function App() {
   return (
     <VelaProvider>
       <BrowserRouter>
-        <div className="flex h-screen overflow-hidden bg-cream pb-16 md:pb-0">
+        <div className="flex h-screen overflow-hidden pb-16 md:pb-0" style={{ background: 'var(--bg)' }}>
           <Sidebar />
           <main className="flex-1 overflow-y-auto">
             <Routes>
