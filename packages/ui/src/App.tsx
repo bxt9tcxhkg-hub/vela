@@ -1,61 +1,31 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { VelaProvider, useVelaStore } from './store/useVelaStore'
-import type { OperationMode, AuthUser } from './store/useVelaStore'
+import { VelaProvider } from './store/useVelaStore'
 import { Sidebar } from './components/Sidebar'
 import { ChatPage } from './pages/ChatPage'
 import { ActivityPage } from './pages/ActivityPage'
-import { PlaygroundPage } from './pages/PlaygroundPage'
-import { WorkflowsPage } from './pages/WorkflowsPage'
-import { AgentsPage } from './pages/AgentsPage'
-import { AuthPage } from './pages/AuthPage'
 import { SettingsPage } from './pages/SettingsPage'
-import OnboardingPage from './pages/OnboardingPage'
-import { MarketplacePage } from './pages/MarketplacePage'
+import { OnboardingPage } from './pages/OnboardingPage'
 
-function AppRoutes() {
-  const { state } = useVelaStore()
-  const isExpert = state.operationMode === 'cloud' || localStorage.getItem('vela_mode') === 'cloud'
 
-  return (
-    <div className="flex h-screen overflow-hidden bg-gray-950 pb-16 md:pb-0">
-      <Sidebar showMarketplace={isExpert} />
-      <main className="flex-1 overflow-y-auto">
-        <Routes>
-          <Route path="/" element={<ChatPage />} />
-          <Route path="/activity" element={<ActivityPage />} />
-          <Route path="/agents" element={<AgentsPage />} />
-          <Route path="/workflows" element={<WorkflowsPage />} />
-          <Route path="/playground" element={<PlaygroundPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          {isExpert && <Route path="/marketplace" element={<MarketplacePage />} />}
-        </Routes>
-      </main>
-    </div>
-  )
-}
+type UiTheme = 'dark' | 'light'
+type UiMode = 'simple' | 'advanced'
 
-function AppShell() {
+export default function App() {
   const [onboarded, setOnboarded] = useState<boolean>(
     () => localStorage.getItem('vela_onboarded') === 'true'
   )
-  const { state, dispatch } = useVelaStore()
+  const [uiTheme] = useState<UiTheme>(() => (localStorage.getItem('vela_ui_theme') as UiTheme) || 'dark')
+  const [uiMode] = useState<UiMode>(() => (localStorage.getItem('vela_ui_mode') as UiMode) || 'simple')
 
-  function handleAuth(token: string, user: AuthUser) {
-    dispatch({ type: 'SET_AUTH', payload: { token, user } })
-  }
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', uiTheme)
+    document.documentElement.setAttribute('data-mode', uiMode)
+  }, [uiTheme, uiMode])
 
-  function completeOnboarding(mode: OperationMode, trustLevel: 'cautious' | 'balanced' | 'autonomous') {
+  function completeOnboarding() {
     localStorage.setItem('vela_onboarded', 'true')
-    localStorage.setItem('vela_mode', mode)
-    localStorage.setItem('vela_trust', trustLevel)
-    localStorage.setItem('vela_model', 'ollama')
     setOnboarded(true)
-  }
-
-  const needsAuth = state.operationMode === 'cloud' && !state.authToken
-  if (needsAuth) {
-    return <AuthPage onAuth={handleAuth} />
   }
 
   if (!onboarded) {
@@ -63,16 +33,19 @@ function AppShell() {
   }
 
   return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
-  )
-}
-
-export default function App() {
-  return (
     <VelaProvider>
-      <AppShell />
+      <BrowserRouter>
+        <div className="flex h-screen overflow-hidden pb-16 md:pb-0" style={{ background: 'var(--bg)' }}>
+          <Sidebar />
+          <main className="flex-1 overflow-y-auto">
+            <Routes>
+              <Route path="/" element={<ChatPage />} />
+              <Route path="/activity" element={<ActivityPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Routes>
+          </main>
+        </div>
+      </BrowserRouter>
     </VelaProvider>
   )
 }
