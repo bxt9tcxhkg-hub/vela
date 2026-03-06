@@ -154,36 +154,36 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-cream">
+    <div className="flex flex-col h-screen bg-[var(--surface-2)]">
       {/* Header */}
-      <header className="flex items-center gap-3 px-6 py-4 border-b border-sand bg-warm shrink-0">
-        <div className="w-8 h-8 rounded-full bg-sky-light flex items-center justify-center">
-          <span className="text-sky font-fraunces font-semibold">&#10022;</span>
+      <header className="flex items-center gap-3 px-6 py-4 border-b border-[var(--border)] bg-[var(--surface-1)] shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-[var(--accent-soft)] border border-[var(--border-strong)] flex items-center justify-center">
+          <span className="text-[var(--accent)] font-semibold">V</span>
         </div>
         <div className="flex-1">
-          <h1 className="font-fraunces font-semibold text-ink text-lg leading-none">
-            V<span className="italic text-sky">e</span>la
+          <h1 className="font-brand font-semibold text-[var(--text-primary)] text-lg leading-none">
+            Vela
           </h1>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="pulse-green w-1.5 h-1.5 rounded-full bg-moss inline-block"></span>
-            <span className="text-xs text-earth">Online</span>
+            <span className="pulse-green w-1.5 h-1.5 rounded-full bg-[var(--success)] inline-block"></span>
+            <span className="text-xs text-[var(--text-secondary)]">Online</span>
           </div>
         </div>
         {state.messages.length > 0 && (
           <button
             onClick={handleClearMessages}
             title="Neues Gespräch"
-            className="px-3 py-1.5 rounded-xl bg-cream border border-sand text-earth text-xs hover:border-bark hover:text-ink transition-colors"
+            className="px-3 py-2 rounded-lg bg-[var(--surface-1)] border border-[var(--border)] text-slate-600 text-xs hover:border-slate-300 hover:text-[var(--text-primary)] transition-colors"
           >
-            🗑️ Neues Gespräch
+            Neues Gespräch
           </button>
         )}
       </header>
 
       {/* Session info */}
       {state.messages.length > 0 && (
-        <div className="px-6 py-1.5 bg-warm border-b border-sand/50">
-          <p className="text-xs text-bark">{state.messages.length} Nachricht{state.messages.length !== 1 ? 'en' : ''} in dieser Session</p>
+        <div className="px-6 py-2 bg-[var(--surface-1)] border-b border-slate-100">
+          <p className="text-xs text-[var(--text-secondary)]">{state.messages.length} Nachricht{state.messages.length !== 1 ? 'en' : ''} in dieser Session</p>
         </div>
       )}
 
@@ -193,16 +193,16 @@ export function ChatPage() {
           if (msg.skillUsed === '__error__') {
             return (
               <div key={msg.id} className="flex items-start gap-3 mb-4">
-                <div className="w-8 h-8 rounded-full bg-red-100 border border-red-200 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-8 h-8 rounded-full bg-red-100 border border-[rgba(248,113,113,0.35)] flex items-center justify-center shrink-0 mt-0.5">
                   <span className="text-red-500 text-sm">!</span>
                 </div>
                 <div className="flex flex-col items-start">
-                  <div className="max-w-xs lg:max-w-md bg-red-50 border border-red-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
-                    <p className="text-red-700 text-sm leading-relaxed">{msg.content}</p>
+                  <div className="max-w-xs lg:max-w-md bg-[rgba(248,113,113,0.12)] border border-[rgba(248,113,113,0.35)] rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+                    <p className="text-[#fecaca] text-sm leading-relaxed">{msg.content}</p>
                   </div>
                   <button
                     onClick={() => sendMessage(lastMessage)}
-                    className="mt-2 px-3 py-1.5 bg-sky text-white rounded-xl text-xs font-medium hover:bg-sky/90 transition-colors"
+                    className="mt-2 px-3 py-1.5 bg-[var(--accent)] text-white rounded-xl text-xs font-medium hover:bg-[var(--accent)]/90 transition-colors"
                   >
                     Nochmal versuchen
                   </button>
@@ -228,8 +228,8 @@ export function ChatPage() {
       </div>
 
       {/* Input */}
-      <div className="px-4 md:px-8 py-4 border-t border-sand bg-warm shrink-0">
-        <div className="flex items-end gap-3 bg-cream rounded-2xl border border-sand px-4 py-3">
+      <div className="px-4 md:px-8 py-4 border-t border-[var(--border)] bg-[var(--surface-1)] shrink-0">
+        <div className="flex items-end gap-3 bg-[var(--surface-2)] rounded-[12px] border border-[var(--border)] px-4 py-3">
           <textarea
             ref={textareaRef}
             value={input}
@@ -237,12 +237,12 @@ export function ChatPage() {
             onKeyDown={handleKeyDown}
             placeholder="Schreib Vela etwas..."
             rows={1}
-            className="flex-1 bg-transparent resize-none outline-none text-sm text-ink placeholder:text-bark leading-relaxed max-h-40"
+            className="flex-1 bg-transparent resize-none outline-none text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] leading-relaxed max-h-40"
           />
           <button
             onClick={() => sendMessage()}
             disabled={!input.trim()}
-            className="w-9 h-9 rounded-xl bg-sky text-white flex items-center justify-center hover:bg-sky/90 transition-colors disabled:opacity-40 shrink-0"
+            className="w-10 h-10 rounded-lg bg-[var(--accent)] text-white flex items-center justify-center hover:brightness-110 transition-colors disabled:opacity-40 shrink-0"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -250,7 +250,7 @@ export function ChatPage() {
             </svg>
           </button>
         </div>
-        <p className="text-xs text-bark mt-1.5 text-center">Enter zum Senden · Shift+Enter für neue Zeile</p>
+        <p className="text-xs text-[var(--text-secondary)] mt-1.5 text-center">Enter zum Senden · Shift+Enter für neue Zeile</p>
       </div>
     </div>
   )
