@@ -11,12 +11,11 @@ permissions:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
             platform: win
-          - os: macos-latest
-            platform: mac
           - os: ubuntu-latest
             platform: linux
 
@@ -43,10 +42,6 @@ jobs:
           echo "NPM_CONFIG_HTTP_PROXY=" >> $GITHUB_ENV
           echo "NPM_CONFIG_HTTPS_PROXY=" >> $GITHUB_ENV
 
-      - name: Install Python setuptools (macOS)
-        if: matrix.platform == 'mac'
-        run: pip3 install setuptools || pip install setuptools || true
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -57,22 +52,6 @@ jobs:
         run: pnpm build
 
       # macOS: Certificate aus GitHub Secrets importieren
-      - name: Import Apple Certificate (macOS only)
-        if: matrix.platform == 'mac' && env.APPLE_CERTIFICATE != ''
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-        run: |
-          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
-          CERTIFICATE_PATH=$RUNNER_TEMP/certificate.p12
-          echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERTIFICATE_PATH"
-          security create-keychain -p "" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "" "$KEYCHAIN_PATH"
-          security import "$CERTIFICATE_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -k "$KEYCHAIN_PATH" -T /usr/bin/codesign
-          security list-keychain -d user -s "$KEYCHAIN_PATH"
-          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
-
       - name: Build & publish Electron app (${{ matrix.platform }})
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -88,13 +67,6 @@ jobs:
           cd packages/desktop
           pnpm dist:${{ matrix.platform }} --publish=always
 
-      - name: Cleanup Keychain (macOS only)
-        if: matrix.platform == 'mac' && always()
-        run: |
-          if [ -f "$RUNNER_TEMP/build.keychain" ]; then
-            security delete-keychain "$RUNNER_TEMP/build.keychain" || true
-          fi
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -106,7 +78,7 @@ jobs:
   create-release:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') && always()
 
     steps:
       - name: Checkout
