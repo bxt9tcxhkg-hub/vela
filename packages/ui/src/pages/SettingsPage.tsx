@@ -1,6 +1,7 @@
 import { MessengerWizard } from '../components/MessengerWizard.js'
 import { BackendSelector, type BackendMode } from '../components/BackendSelector.js'
 import React, { useState, useEffect } from 'react'
+import { Card, Button, Input, SegmentedControl } from '../components/ui'
 import { useVelaStore } from '../store/useVelaStore'
 
 type TrustLevel = 'cautious' | 'balanced' | 'autonomous'
@@ -21,6 +22,7 @@ const models = [
 
 export function SettingsPage() {
   const { state, dispatch } = useVelaStore()
+  const [isAdvanced, setIsAdvanced] = useState<boolean>(() => (localStorage.getItem('vela_ui_mode') || 'simple') === 'advanced')
 
   // KI-Verbindung state
   const [backendMode, setBackendMode] = useState<BackendMode>('local')
@@ -57,6 +59,17 @@ export function SettingsPage() {
         setHasGmailConfig(data.hasGmailConfig ?? false)
       })
       .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    const syncMode = () => setIsAdvanced((document.documentElement.getAttribute('data-mode') || 'simple') === 'advanced')
+    syncMode()
+    window.addEventListener('storage', syncMode)
+    const id = window.setInterval(syncMode, 600)
+    return () => {
+      window.removeEventListener('storage', syncMode)
+      window.clearInterval(id)
+    }
   }, [])
 
   async function handleBackendChange(mode: BackendMode) {
@@ -140,18 +153,18 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="flex-1 bg-cream min-h-screen">
-      <header className="px-6 py-8 border-b border-sand bg-warm">
-        <h1 className="font-fraunces font-semibold text-2xl text-ink">Einstellungen</h1>
-        <p className="text-earth text-sm mt-1">Passe Vela an deine Bedürfnisse an</p>
+    <div className="flex-1 min-h-screen" style={{ background: 'var(--bg)' }}>
+      <header className="px-6 py-8 border-b border-[var(--border)] bg-[var(--surface-1)]">
+        <div className="flex items-center gap-3"><h1 className="text-2xl text-[var(--text-primary)]">Einstellungen</h1><span className="text-xs px-2 py-1 rounded-full border border-[var(--border)] text-[var(--text-secondary)]">{isAdvanced ? 'Expertenmodus' : 'Einfachmodus'}</span></div>
+        <p className="text-[var(--text-secondary)] text-sm mt-1">Passe Vela an deine Bedürfnisse an</p>
       </header>
 
-      <div className="px-4 md:px-8 py-8 max-w-xl space-y-10">
+      <div className="px-4 md:px-8 py-8 max-w-4xl space-y-10">
 
         {/* KI-Verbindung */}
         <section>
-          <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">KI-Verbindung</h2>
-          <p className="text-earth text-sm mb-4">Verbinde Vela mit deinem KI-Anbieter.</p>
+          <h2 className="text-lg text-[var(--text-primary)] mb-1">KI-Verbindung</h2>
+          <p className="text-[var(--text-secondary)] text-sm mb-4">Verbinde Vela mit deinem KI-Anbieter.</p>
 
           <BackendSelector
             current={backendMode}
@@ -159,13 +172,13 @@ export function SettingsPage() {
             requiresConfirmation={true}
           />
 
-          <div className="bg-warm border border-sand rounded-2xl p-5 space-y-4">
+          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-[14px] p-5 space-y-4">
             <div className="flex items-center gap-3">
-              <span className="text-earth text-sm">Aktives Modell:</span>
+              <span className="text-[var(--text-secondary)] text-sm">Aktives Modell:</span>
               <select
                 value={activeModel}
                 onChange={(e) => setActiveModel(e.target.value)}
-                className="bg-cream border border-sand rounded-xl px-3 py-1.5 text-ink text-sm outline-none focus:border-sky"
+                className="bg-[var(--surface-2)] border border-[var(--border)] rounded-[8px] px-3 py-1.5 text-[var(--text-primary)] text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]"
               >
                 {models.map((m) => (
                   <option key={m.value} value={m.value}>{m.label}</option>
@@ -175,25 +188,25 @@ export function SettingsPage() {
 
             {activeModel !== 'ollama' && (
               <label className="block">
-                <span className="text-ink text-sm font-medium mb-1.5 block">API Key</span>
+                <span className="text-[var(--text-primary)] text-sm font-medium mb-1.5 block">API Key</span>
                 <input
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder={activeModel === 'claude' ? 'sk-ant-...' : 'sk-...'}
-                  className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+                  className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-[8px] px-4 py-3 text-[var(--text-primary)] text-sm outline-none focus:ring-2 focus:ring-[var(--accent)] transition-colors"
                 />
               </label>
             )}
             {activeModel === 'ollama' && (
-              <p className="text-earth text-sm">Ollama läuft lokal – kein API Key nötig.</p>
+              <p className="text-[var(--text-secondary)] text-sm">Ollama läuft lokal – kein API Key nötig.</p>
             )}
 
             <div className="flex items-center gap-3 flex-wrap">
               <button
                 onClick={testConnection}
                 disabled={testStatus === 'loading'}
-                className="px-4 py-2 bg-cream border border-sand rounded-xl text-ink text-sm font-medium hover:border-bark transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-[var(--surface-2)] border border-[var(--border)] rounded-[8px] text-[var(--text-primary)] text-sm font-medium hover:border-[var(--border-strong)] transition-colors disabled:opacity-50"
               >
                 {testStatus === 'loading' ? '...' : 'Verbindung testen'}
               </button>
@@ -201,7 +214,7 @@ export function SettingsPage() {
                 <button
                   onClick={saveApiKey}
                   disabled={saveStatus === 'saving' || !apiKey}
-                  className="px-4 py-2 bg-sky text-white rounded-xl text-sm font-medium hover:bg-sky/90 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-[var(--accent)] text-[#06231f] rounded-[8px] text-sm font-semibold hover:brightness-110 transition-colors disabled:opacity-50"
                 >
                   {saveStatus === 'saving' ? 'Speichern...' : saveStatus === 'saved' ? '✓ Gespeichert' : 'Speichern'}
                 </button>
@@ -215,38 +228,38 @@ export function SettingsPage() {
 
         {/* Persönlichkeit */}
         <section>
-          <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">Persönlichkeit</h2>
-          <p className="text-earth text-sm mb-4">Wie soll Vela heißen und sich verhalten?</p>
+          <h2 className="text-lg text-[var(--text-primary)] mb-1">Persönlichkeit</h2>
+          <p className="text-[var(--text-secondary)] text-sm mb-4">Wie soll Vela heißen und sich verhalten?</p>
 
-          <div className="bg-warm border border-sand rounded-2xl p-5 space-y-4">
+          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-[14px] p-5 space-y-4">
             <label className="block">
-              <span className="text-ink text-sm font-medium mb-1.5 block">Name</span>
+              <span className="text-[var(--text-primary)] text-sm font-medium mb-1.5 block">Name</span>
               <input
                 type="text"
                 value={velaName}
                 onChange={(e) => setVelaName(e.target.value)}
                 placeholder="Vela"
-                className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+                className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-[8px] px-4 py-3 text-[var(--text-primary)] text-sm outline-none focus:ring-2 focus:ring-[var(--accent)] transition-colors"
               />
             </label>
 
             <label className="block">
-              <span className="text-ink text-sm font-medium mb-1.5 block">Persönlichkeit / Verhalten</span>
+              <span className="text-[var(--text-primary)] text-sm font-medium mb-1.5 block">Persönlichkeit / Verhalten</span>
               <textarea
                 value={systemPrompt}
                 onChange={(e) => setSystemPrompt(e.target.value)}
                 placeholder="Hilfsbereit, präzise, auf Deutsch"
                 rows={4}
-                className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors resize-none leading-relaxed"
+                className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-[8px] px-4 py-3 text-[var(--text-primary)] text-sm outline-none focus:ring-2 focus:ring-[var(--accent)] transition-colors resize-none leading-relaxed"
               />
-              <span className="text-xs text-bark mt-1 block">Beschreibe, wie Vela sprechen und handeln soll.</span>
+              <span className="text-xs text-[var(--text-secondary)] mt-1 block">Beschreibe, wie Vela sprechen und handeln soll.</span>
             </label>
 
             <div className="flex items-center gap-3">
               <button
                 onClick={savePersonality}
                 disabled={personalitySaveStatus === 'saving'}
-                className="px-4 py-2 bg-sky text-white rounded-xl text-sm font-medium hover:bg-sky/90 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-[var(--accent)] text-[#06231f] rounded-[8px] text-sm font-semibold hover:brightness-110 transition-colors disabled:opacity-50"
               >
                 {personalitySaveStatus === 'saving' ? 'Speichern...' : personalitySaveStatus === 'saved' ? '✓ Gespeichert' : 'Speichern'}
               </button>
@@ -256,11 +269,11 @@ export function SettingsPage() {
         </section>
 
         {/* Experten: OpenAI-kompatibler Endpunkt */}
-        {activeModel === 'openai' && (
+        {isAdvanced && activeModel === 'openai' && (
           <section>
-            <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">OpenAI-kompatibler Endpunkt</h2>
-            <p className="text-earth text-sm mb-4">Für Experten: Beliebigen OpenAI-kompatiblen Server einbinden.</p>
-            <div className="bg-warm border border-sand rounded-2xl p-5 space-y-4">
+            <h2 className="text-lg text-[var(--text-primary)] mb-1">OpenAI-kompatibler Endpunkt</h2>
+            <p className="text-[var(--text-secondary)] text-sm mb-4">Für Experten: Beliebigen OpenAI-kompatiblen Server einbinden.</p>
+            <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-[14px] p-5 space-y-4">
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-xs text-yellow-800">
                 <p className="font-medium mb-1">Kompatible Endpunkte:</p>
                 <p>• LM Studio: http://localhost:1234/v1</p>
@@ -270,13 +283,13 @@ export function SettingsPage() {
                 <p>• lokale llama.cpp: http://localhost:8080/v1</p>
               </div>
               <label className="block">
-                <span className="text-ink text-sm font-medium mb-1.5 block">Base URL</span>
+                <span className="text-[var(--text-primary)] text-sm font-medium mb-1.5 block">Base URL</span>
                 <input
                   type="text"
                   value={openaiBaseUrl}
                   onChange={(e) => setOpenaiBaseUrl(e.target.value)}
                   placeholder="https://api.openai.com/v1"
-                  className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors font-mono"
+                  className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-[8px] px-4 py-3 text-[var(--text-primary)] text-sm outline-none focus:ring-2 focus:ring-[var(--accent)] transition-colors font-mono"
                 />
               </label>
               <button
@@ -287,7 +300,7 @@ export function SettingsPage() {
                     body: JSON.stringify({ openaiBaseUrl, backend: 'openai' }),
                   })
                 }}
-                className="px-4 py-2 bg-sky text-white rounded-xl text-sm font-medium hover:bg-sky/90 transition-colors"
+                className="px-4 py-2 bg-[var(--accent)] text-[#06231f] rounded-[8px] text-sm font-semibold hover:brightness-110 transition-colors"
               >
                 Endpunkt speichern
               </button>
@@ -297,8 +310,8 @@ export function SettingsPage() {
 
         {/* Trust Level */}
         <section>
-          <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">Vertrauensstufe</h2>
-          <p className="text-earth text-sm mb-4">Wie selbststaendig darf Vela handeln?</p>
+          <h2 className="text-lg text-[var(--text-primary)] mb-1">Vertrauensstufe</h2>
+          <p className="text-[var(--text-secondary)] text-sm mb-4">Wie selbststaendig darf Vela handeln?</p>
           <div className="flex gap-2 mb-4">
             {trustOptions.map((opt) => (
               <button
@@ -306,54 +319,54 @@ export function SettingsPage() {
                 onClick={() => dispatch({ type: 'SET_TRUST', payload: opt.value })}
                 className={`flex-1 py-3 px-2 rounded-xl text-sm font-medium border transition-all ${
                   state.trustLevel === opt.value
-                    ? 'bg-sky text-white border-sky shadow-sm'
-                    : 'bg-warm text-earth border-sand hover:border-bark'
+                    ? 'bg-[var(--accent)] text-[#06231f] border-transparent shadow-[0_8px_20px_rgba(45,212,191,0.18)]'
+                    : 'bg-[var(--surface-1)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--border-strong)]'
                 }`}
               >
                 {opt.label}
               </button>
             ))}
           </div>
-          <div className="bg-warm border border-sand rounded-2xl px-4 py-3">
-            <p className="text-ink text-sm">
+          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl px-4 py-3">
+            <p className="text-[var(--text-primary)] text-sm">
               {trustOptions.find((o) => o.value === state.trustLevel)?.description}
             </p>
           </div>
         </section>
 
         {/* KI-Modell (legacy selector kept for store state) */}
-        <section>
-          <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">KI-Modell (Store)</h2>
-          <p className="text-earth text-sm mb-4">Welches Sprachmodell soll Vela intern verwenden?</p>
+        {isAdvanced && (<section>
+          <h2 className="text-lg text-[var(--text-primary)] mb-1">KI-Modell (Store)</h2>
+          <p className="text-[var(--text-secondary)] text-sm mb-4">Welches Sprachmodell soll Vela intern verwenden?</p>
           <select
             value={state.activeModel}
             onChange={(e) => dispatch({ type: 'SET_MODEL', payload: e.target.value })}
-            className="w-full bg-warm border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors appearance-none cursor-pointer"
+            className="w-full bg-[var(--surface-1)] border border-[var(--border)] rounded-xl px-4 py-3 text-[var(--text-primary)] text-sm outline-none focus:ring-2 focus:ring-[var(--accent)] transition-colors appearance-none cursor-pointer"
           >
             {models.map((m) => (
               <option key={m.value} value={m.value}>{m.label}</option>
             ))}
           </select>
-        </section>
+        </section>)}
 
         {/* Messenger */}
         <section>
-          <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">Messenger</h2>
-          <p className="text-earth text-sm mb-4">Chatte mit Vela über Telegram oder Discord.</p>
+          <h2 className="text-lg text-[var(--text-primary)] mb-1">Messenger</h2>
+          <p className="text-[var(--text-secondary)] text-sm mb-4">Chatte mit Vela über Telegram oder Discord.</p>
           <MessengerWizard />
         </section>
 
         {/* Verbundene Dienste */}
         <section>
-          <h2 className="font-fraunces font-semibold text-lg text-ink mb-1">Verbundene Dienste</h2>
-          <p className="text-earth text-sm mb-4">Welche Apps kann Vela verwenden?</p>
+          <h2 className="text-lg text-[var(--text-primary)] mb-1">Verbundene Dienste</h2>
+          <p className="text-[var(--text-secondary)] text-sm mb-4">Welche Apps kann Vela verwenden?</p>
           <div className="space-y-3">
             {/* Gmail */}
-            <div className="flex items-center gap-4 bg-warm border border-sand rounded-2xl px-5 py-4">
+            <div className="flex items-center gap-4 bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl px-5 py-4">
               <span className="text-2xl">📧</span>
               <div className="flex-1">
-                <p className="text-ink text-sm font-medium">Gmail</p>
-                <p className="text-xs text-earth mt-0.5">
+                <p className="text-[var(--text-primary)] text-sm font-medium">Gmail</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">
                   {hasGmailConfig ? '✅ Verbunden' : '❌ Nicht verbunden'}
                 </p>
               </div>
@@ -361,8 +374,8 @@ export function SettingsPage() {
                 onClick={() => setGmailModalOpen(true)}
                 className={`px-4 py-1.5 rounded-xl text-xs font-medium transition-colors ${
                   hasGmailConfig
-                    ? 'bg-cream border border-sand text-earth hover:border-bark'
-                    : 'bg-sky text-white hover:bg-sky/90'
+                    ? 'bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]'
+                    : 'bg-[var(--accent)] text-[#06231f] hover:brightness-110'
                 }`}
               >
                 {hasGmailConfig ? 'Neu verbinden' : 'Gmail verbinden'}
@@ -376,54 +389,54 @@ export function SettingsPage() {
       {/* Gmail OAuth Modal */}
       {gmailModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-cream border border-sand rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4">
+          <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-fraunces font-semibold text-lg text-ink">Gmail verbinden</h3>
+              <h3 className="text-lg text-[var(--text-primary)]">Gmail verbinden</h3>
               <button
                 onClick={() => setGmailModalOpen(false)}
-                className="text-earth hover:text-ink transition-colors text-xl leading-none"
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-xl leading-none"
               >
                 ×
               </button>
             </div>
 
-            <div className="bg-warm border border-sand rounded-xl p-4 text-sm text-earth space-y-1">
-              <p className="font-medium text-ink mb-2">Anleitung:</p>
+            <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-4 text-sm text-[var(--text-secondary)] space-y-1">
+              <p className="font-medium text-[var(--text-primary)] mb-2">Anleitung:</p>
               <p>1. Google Cloud Console öffnen</p>
               <p>2. OAuth Client erstellen</p>
               <p>3. Refresh Token generieren</p>
             </div>
 
             <label className="block">
-              <span className="text-ink text-sm font-medium mb-1.5 block">Client ID</span>
+              <span className="text-[var(--text-primary)] text-sm font-medium mb-1.5 block">Client ID</span>
               <input
                 type="text"
                 value={gmailClientId}
                 onChange={(e) => setGmailClientId(e.target.value)}
                 placeholder="123456789-abc.apps.googleusercontent.com"
-                className="w-full bg-warm border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+                className="w-full bg-[var(--surface-1)] border border-[var(--border)] rounded-xl px-4 py-3 text-[var(--text-primary)] text-sm outline-none focus:ring-2 focus:ring-[var(--accent)] transition-colors"
               />
             </label>
 
             <label className="block">
-              <span className="text-ink text-sm font-medium mb-1.5 block">Client Secret</span>
+              <span className="text-[var(--text-primary)] text-sm font-medium mb-1.5 block">Client Secret</span>
               <input
                 type="password"
                 value={gmailClientSecret}
                 onChange={(e) => setGmailClientSecret(e.target.value)}
                 placeholder="GOCSPX-..."
-                className="w-full bg-warm border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+                className="w-full bg-[var(--surface-1)] border border-[var(--border)] rounded-xl px-4 py-3 text-[var(--text-primary)] text-sm outline-none focus:ring-2 focus:ring-[var(--accent)] transition-colors"
               />
             </label>
 
             <label className="block">
-              <span className="text-ink text-sm font-medium mb-1.5 block">Refresh Token</span>
+              <span className="text-[var(--text-primary)] text-sm font-medium mb-1.5 block">Refresh Token</span>
               <input
                 type="password"
                 value={gmailRefreshToken}
                 onChange={(e) => setGmailRefreshToken(e.target.value)}
                 placeholder="1//0g..."
-                className="w-full bg-warm border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+                className="w-full bg-[var(--surface-1)] border border-[var(--border)] rounded-xl px-4 py-3 text-[var(--text-primary)] text-sm outline-none focus:ring-2 focus:ring-[var(--accent)] transition-colors"
               />
             </label>
 
@@ -431,13 +444,13 @@ export function SettingsPage() {
               <button
                 onClick={saveGmailConfig}
                 disabled={gmailSaveStatus === 'saving' || !gmailClientId || !gmailClientSecret || !gmailRefreshToken}
-                className="px-5 py-2 bg-sky text-white rounded-xl text-sm font-medium hover:bg-sky/90 transition-colors disabled:opacity-50"
+                className="px-5 py-2 bg-[var(--accent)] text-[#06231f] rounded-[8px] text-sm font-semibold hover:brightness-110 transition-colors disabled:opacity-50"
               >
                 {gmailSaveStatus === 'saving' ? 'Speichern...' : gmailSaveStatus === 'saved' ? '✓ Gespeichert' : 'Speichern'}
               </button>
               <button
                 onClick={() => setGmailModalOpen(false)}
-                className="px-5 py-2 bg-warm border border-sand rounded-xl text-ink text-sm font-medium hover:border-bark transition-colors"
+                className="px-5 py-2 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl text-[var(--text-primary)] text-sm font-medium hover:border-[var(--border-strong)] transition-colors"
               >
                 Abbrechen
               </button>

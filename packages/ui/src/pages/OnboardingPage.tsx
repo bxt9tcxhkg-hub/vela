@@ -114,14 +114,14 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-cream flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4">
       {/* Step indicators */}
       <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-2">
         {[1, 2, 3].map((s) => (
           <div
             key={s}
             className={`w-2 h-2 rounded-full transition-all ${
-              s === step ? 'bg-sky w-6' : s < step ? 'bg-sky/50' : 'bg-sand'
+              s === step ? 'bg-[var(--accent)] w-6' : s < step ? 'bg-[var(--accent)]/50' : 'bg-sand'
             }`}
           />
         ))}
@@ -131,33 +131,33 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
         {/* Step 1 – Welcome */}
         {step === 1 && (
           <div className="text-center space-y-6 animate-fade-in">
-            <div className="font-fraunces text-7xl font-semibold text-ink tracking-tight">
-              V<span className="italic text-sky">e</span>la
+            <div className=" text-7xl font-semibold text-[var(--text-primary)] tracking-tight">
+              V<span className="italic text-[var(--accent)]">e</span>la
             </div>
             <div>
-              <h1 className="font-fraunces text-3xl font-semibold text-ink mb-3">
+              <h1 className=" text-3xl font-semibold text-[var(--text-primary)] mb-3">
                 Willkommen bei Vela
               </h1>
-              <p className="text-earth text-lg">
+              <p className="text-[var(--text-secondary)] text-lg">
                 Dein persönlicher KI-Agent. Richte ihn in 3 Schritten ein.
               </p>
             </div>
             {/* Hardware Badge */}
             {hardware && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-warm border border-sand rounded-xl text-earth text-sm">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl text-[var(--text-secondary)] text-sm">
                 <span>💻</span>
                 <span>{hardware.ram_gb} GB RAM</span>
                 {hardware.has_gpu && <span>· GPU ✓</span>}
                 <span>·</span>
-                <span className={hardware.recommended_backend === 'local' ? 'text-green-600' : hardware.recommended_backend === 'groq' ? 'text-sky' : 'text-bark'}>
+                <span className={hardware.recommended_backend === 'local' ? 'text-green-600' : hardware.recommended_backend === 'groq' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}>
                   {hardware.recommended_backend === 'local' ? '✓ Lokal empfohlen' : hardware.recommended_backend === 'groq' ? '⚡ Groq empfohlen' : '☁ Cloud empfohlen'}
                 </span>
               </div>
             )}
-            {hwLoading && <p className="text-earth text-sm">Hardware wird erkannt...</p>}
+            {hwLoading && <p className="text-[var(--text-secondary)] text-sm">Hardware wird erkannt...</p>}
             <button
               onClick={() => setStep(2)}
-              className="mt-4 inline-flex items-center gap-2 px-8 py-4 bg-sky text-white font-medium rounded-2xl hover:bg-sky/90 transition-all shadow-sm text-lg"
+              className="mt-4 inline-flex items-center gap-2 px-8 py-4 bg-[var(--accent)] text-white font-medium rounded-2xl hover:bg-[var(--accent)]/90 transition-all shadow-sm text-lg"
             >
               Los geht's →
             </button>
@@ -168,25 +168,25 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
         {step === 2 && (
           <div className="space-y-6">
             <div>
-              <h1 className="font-fraunces text-2xl font-semibold text-ink mb-1">
+              <h1 className=" text-2xl font-semibold text-[var(--text-primary)] mb-1">
                 KI-Modell verbinden
               </h1>
-              <p className="text-earth text-sm">Verbinde Vela mit deinem bevorzugten KI-Anbieter.</p>
+              <p className="text-[var(--text-secondary)] text-sm">Verbinde Vela mit deinem bevorzugten KI-Anbieter.</p>
               {hardware && (
-                <p className="text-sky text-xs mt-1">
+                <p className="text-[var(--accent)] text-xs mt-1">
                   ⚡ Empfehlung für dein System: <strong>{hardware.recommended_backend === 'local' ? 'Lokal (Ollama)' : hardware.recommended_backend === 'groq' ? 'Groq (kostenlos, schnell)' : 'Cloud (Anthropic/OpenAI)'}</strong>
                 </p>
               )}
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 bg-warm border border-sand rounded-xl p-1 flex-wrap">
+            <div className="flex gap-1 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-1 flex-wrap">
               {(['claude', 'groq', 'gemini', 'openai', 'ollama'] as Tab[]).map((t) => (
                 <button
                   key={t}
                   onClick={() => { setTab(t); setTestStatus('idle') }}
                   className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all min-w-0 ${
-                    tab === t ? 'bg-white text-ink shadow-sm' : 'text-earth hover:text-ink'
+                    tab === t ? 'bg-[var(--surface-2)] text-[var(--text-primary)] border border-[var(--border-strong)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
                   {t === 'claude' ? 'Anthropic' : t === 'openai' ? 'OpenAI' : t === 'groq' ? 'Groq ⚡' : t === 'gemini' ? 'Gemini 🆓' : 'Ollama'}
@@ -195,84 +195,84 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
             </div>
 
             {/* Tab content */}
-            <div className="bg-warm border border-sand rounded-2xl p-5 space-y-4">
+            <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl p-5 space-y-4">
               {tab === 'claude' && (
                 <>
                   <label className="block">
-                    <span className="text-ink text-sm font-medium mb-1.5 block">ANTHROPIC_API_KEY</span>
+                    <span className="text-[var(--text-primary)] text-sm font-medium mb-1.5 block">ANTHROPIC_API_KEY</span>
                     <input
                       type="password"
                       value={claudeKey}
                       onChange={(e) => setClaudeKey(e.target.value)}
                       placeholder="sk-ant-..."
-                      className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+                      className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl px-4 py-3 text-[var(--text-primary)] text-sm outline-none focus:ring-2 focus:ring-[var(--accent)] transition-colors"
                     />
                   </label>
-                  <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" className="text-sky text-xs hover:underline">
+                  <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] text-xs hover:underline">
                     ↗ API Key erstellen auf console.anthropic.com
                   </a>
                 </>
               )}
               {tab === 'groq' && (
                 <>
-                  <div className="bg-sky/10 border border-sky/20 rounded-xl px-4 py-3 text-sm text-ink">
+                  <div className="bg-[var(--accent)]/10 border border-[var(--border-strong)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)]">
                     <p className="font-medium mb-1">⚡ Groq — kostenlos & sehr schnell</p>
-                    <p className="text-earth text-xs">Vela sendet deine Anfragen an Groqs Server. Groq speichert keine Konversationen dauerhaft. Ideal wenn dein Computer weniger Leistung hat.</p>
+                    <p className="text-[var(--text-secondary)] text-xs">Vela sendet deine Anfragen an Groqs Server. Groq speichert keine Konversationen dauerhaft. Ideal wenn dein Computer weniger Leistung hat.</p>
                   </div>
                   <label className="block">
-                    <span className="text-ink text-sm font-medium mb-1.5 block">GROQ_API_KEY</span>
+                    <span className="text-[var(--text-primary)] text-sm font-medium mb-1.5 block">GROQ_API_KEY</span>
                     <input
                       type="password"
                       value={groqKey}
                       onChange={(e) => setGroqKey(e.target.value)}
                       placeholder="gsk_..."
-                      className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+                      className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl px-4 py-3 text-[var(--text-primary)] text-sm outline-none focus:ring-2 focus:ring-[var(--accent)] transition-colors"
                     />
                   </label>
-                  <a href="https://console.groq.com" target="_blank" rel="noopener noreferrer" className="text-sky text-xs hover:underline">
+                  <a href="https://console.groq.com" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] text-xs hover:underline">
                     ↗ Kostenlosen API Key erstellen auf console.groq.com
                   </a>
                 </>
               )}
               {tab === 'openai' && (
                 <label className="block">
-                  <span className="text-ink text-sm font-medium mb-1.5 block">OPENAI_API_KEY</span>
+                  <span className="text-[var(--text-primary)] text-sm font-medium mb-1.5 block">OPENAI_API_KEY</span>
                   <input
                     type="password"
                     value={openaiKey}
                     onChange={(e) => setOpenaiKey(e.target.value)}
                     placeholder="sk-..."
-                    className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+                    className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl px-4 py-3 text-[var(--text-primary)] text-sm outline-none focus:ring-2 focus:ring-[var(--accent)] transition-colors"
                   />
                 </label>
               )}
               {tab === 'gemini' && (
                 <>
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-ink">
+                  <div className="bg-[var(--accent-soft)] border border-[var(--border-strong)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)]">
                     <p className="font-medium mb-1">🆓 Google Gemini — kostenlos</p>
-                    <p className="text-earth text-xs">Kostenloser API-Key auf aistudio.google.com. Kein Credit Card nötig. Daten gehen an Google-Server.</p>
+                    <p className="text-[var(--text-secondary)] text-xs">Kostenloser API-Key auf aistudio.google.com. Kein Credit Card nötig. Daten gehen an Google-Server.</p>
                   </div>
                   <label className="block">
-                    <span className="text-ink text-sm font-medium mb-1.5 block">GEMINI_API_KEY</span>
+                    <span className="text-[var(--text-primary)] text-sm font-medium mb-1.5 block">GEMINI_API_KEY</span>
                     <input
                       type="password"
                       value={geminiKey}
                       onChange={(e) => setGeminiKey(e.target.value)}
                       placeholder="AIzaSy..."
-                      className="w-full bg-cream border border-sand rounded-xl px-4 py-3 text-ink text-sm outline-none focus:border-sky transition-colors"
+                      className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl px-4 py-3 text-[var(--text-primary)] text-sm outline-none focus:ring-2 focus:ring-[var(--accent)] transition-colors"
                     />
                   </label>
-                  <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-sky text-xs hover:underline">
+                  <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] text-xs hover:underline">
                     ↗ Kostenloser API Key auf aistudio.google.com
                   </a>
                 </>
               )}
               {tab === 'ollama' && (
                 <div className="space-y-3">
-                  <p className="text-earth text-sm">
+                  <p className="text-[var(--text-secondary)] text-sm">
                     Ollama läuft lokal – kein API Key nötig. Stelle sicher, dass Ollama auf deinem System läuft.
                   </p>
-                  <a href="https://ollama.com/download" target="_blank" rel="noopener noreferrer" className="text-sky text-xs hover:underline">
+                  <a href="https://ollama.com/download" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] text-xs hover:underline">
                     ↗ Ollama installieren auf ollama.com
                   </a>
                 </div>
@@ -284,7 +284,7 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
               <button
                 onClick={testConnection}
                 disabled={testStatus === 'loading'}
-                className="px-5 py-2.5 bg-warm border border-sand rounded-xl text-ink text-sm font-medium hover:border-bark transition-colors disabled:opacity-50"
+                className="px-5 py-2.5 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl text-[var(--text-primary)] text-sm font-medium hover:border-bark transition-colors disabled:opacity-50"
               >
                 {testStatus === 'loading' ? '...' : 'Test Connection'}
               </button>
@@ -298,7 +298,7 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
 
             <button
               onClick={() => setStep(3)}
-              className="w-full py-4 bg-sky text-white font-medium rounded-2xl hover:bg-sky/90 transition-all shadow-sm"
+              className="w-full py-4 bg-[var(--accent)] text-white font-medium rounded-2xl hover:bg-[var(--accent)]/90 transition-all shadow-sm"
             >
               Weiter →
             </button>
@@ -309,15 +309,15 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
         {step === 3 && (
           <div className="space-y-6">
             <div>
-              <h1 className="font-fraunces text-2xl font-semibold text-ink mb-1">
+              <h1 className=" text-2xl font-semibold text-[var(--text-primary)] mb-1">
                 Vertrauen konfigurieren
               </h1>
-              <p className="text-earth text-sm">Wie selbstständig darf Vela handeln?</p>
+              <p className="text-[var(--text-secondary)] text-sm">Wie selbstständig darf Vela handeln?</p>
             </div>
 
             {/* Level Selection */}
             <div>
-              <p className="text-ink text-sm font-medium mb-2">Wie vertraut bist du mit KI-Tools?</p>
+              <p className="text-[var(--text-primary)] text-sm font-medium mb-2">Wie vertraut bist du mit KI-Tools?</p>
               <div className="flex gap-2">
                 {([
                   { value: 'laie' as const, label: '🌱 Neu dabei' },
@@ -329,8 +329,8 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
                     onClick={() => setLevel(opt.value)}
                     className={`flex-1 py-2 px-2 rounded-xl text-xs font-medium border transition-all ${
                       level === opt.value
-                        ? 'bg-sky text-white border-sky shadow-sm'
-                        : 'bg-warm text-earth border-sand hover:border-bark'
+                        ? 'bg-[var(--accent)] text-white border-sky shadow-sm'
+                        : 'bg-[var(--surface-1)] text-[var(--text-secondary)] border-[var(--border)] hover:border-bark'
                     }`}
                   >
                     {opt.label}
@@ -346,25 +346,25 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
                   onClick={() => setTrust(opt.value)}
                   className={`w-full text-left p-5 rounded-2xl border-2 transition-all ${
                     trust === opt.value
-                      ? 'border-sky bg-sky-light'
-                      : 'border-sand bg-warm hover:border-bark'
+                      ? 'border-sky bg-[var(--accent)]-light'
+                      : 'border-[var(--border)] bg-[var(--surface-1)] hover:border-bark'
                   }`}
                 >
                   <div className="flex items-center gap-3 mb-1">
                     <span className="text-xl">{opt.icon}</span>
-                    <span className="font-fraunces font-semibold text-ink">{opt.label}</span>
+                    <span className=" font-semibold text-[var(--text-primary)]">{opt.label}</span>
                     {trust === opt.value && (
-                      <span className="ml-auto text-sky text-sm font-medium">✓ Ausgewählt</span>
+                      <span className="ml-auto text-[var(--accent)] text-sm font-medium">✓ Ausgewählt</span>
                     )}
                   </div>
-                  <p className="text-earth text-sm ml-9">{opt.description}</p>
+                  <p className="text-[var(--text-secondary)] text-sm ml-9">{opt.description}</p>
                 </button>
               ))}
             </div>
 
             <button
               onClick={finish}
-              className="w-full py-4 bg-sky text-white font-semibold rounded-2xl hover:bg-sky/90 transition-all shadow-sm text-lg font-fraunces"
+              className="w-full py-4 bg-[var(--accent)] text-white font-semibold rounded-2xl hover:bg-[var(--accent)]/90 transition-all shadow-sm text-lg "
             >
               Vela starten →
             </button>
