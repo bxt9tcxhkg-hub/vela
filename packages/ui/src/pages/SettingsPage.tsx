@@ -50,9 +50,9 @@ export function SettingsPage() {
   useEffect(() => {
     fetch('http://localhost:3000/api/settings')
       .then((r) => r.json())
-      .then((data: { hasAnthropicKey: boolean; model: string; velaName?: string; systemPrompt?: string; hasGmailConfig?: boolean }) => {
+      .then((data: { hasAnthropicKey: boolean; model: string; velaName?: string; systemPrompt?: string; hasGmailConfig?: boolean; backend?: string; openaiBaseUrl?: string }) => {
         if (data.model) setActiveModel(data.model)
-        if ((data as Record<string,unknown>).openaiBaseUrl) setOpenaiBaseUrl((data as Record<string,unknown>).openaiBaseUrl as string)
+        if (data.openaiBaseUrl) setOpenaiBaseUrl(data.openaiBaseUrl)
         if (data.backend) setBackendMode(data.backend as BackendMode)
         if (data.velaName) setVelaName(data.velaName)
         if (data.systemPrompt) setSystemPrompt(data.systemPrompt)

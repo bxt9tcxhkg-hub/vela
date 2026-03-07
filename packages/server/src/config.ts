@@ -8,7 +8,7 @@ export const config = {
   defaultModel: process.env.DEFAULT_MODEL ?? 'claude-haiku-4-5-20251001',
   nodeEnv: process.env.NODE_ENV ?? 'development',
   groqApiKey: process.env.GROQ_API_KEY ?? '',
-  velaBackend: process.env.VELA_BACKEND ?? 'anthropic',
+  velaBackend: process.env.VELA_BACKEND ?? 'local',
   geminiApiKey: process.env.GEMINI_API_KEY ?? '',
   openaiBaseUrl: process.env.VELA_OPENAI_BASE_URL ?? 'https://api.openai.com/v1',
   prefLevel: process.env.VELA_PREF_LEVEL ?? 'laie',

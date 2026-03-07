@@ -100,11 +100,11 @@ export function MessengerWizard() {
       setStep(selected === 'telegram' ? 'test' : 'done')
 
       // Update statuses
-      setStatuses(prev => prev.map(s =>
-        s.type === selected
-          ? { ...s, connected: true, displayName: data.botName ?? data.channelName }
-          : s
-      ))
+      setStatuses(prev => prev.map((s) => {
+        if (s.type !== selected) return s
+        const nextName = data.botName ?? data.channelName
+        return nextName ? { ...s, connected: true, displayName: nextName } : { ...s, connected: true }
+      }))
     } catch {
       setError('Server nicht erreichbar.')
     } finally {
@@ -132,7 +132,11 @@ export function MessengerWizard() {
 
   async function handleDisconnect(type: MessengerType) {
     await fetch(`http://localhost:3000/api/messenger/${type}/disconnect`, { method: 'POST' })
-    setStatuses(prev => prev.map(s => s.type === type ? { ...s, connected: false, displayName: undefined } : s))
+    setStatuses((prev) => prev.map((s) => {
+      if (s.type !== type) return s
+      const { displayName: _displayName, ...rest } = s
+      return { ...rest, connected: false }
+    }))
   }
 
   const info = selected ? MESSENGER_INFO[selected] : null

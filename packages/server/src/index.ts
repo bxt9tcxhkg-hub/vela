@@ -10,6 +10,11 @@ import { onboardingRoutes } from './routes/onboarding.js'
 import { zoneRoutes } from './routes/zones.js'
 import { messengerRoutes } from './routes/messenger.js'
 import { statusRoutes } from './routes/status.js'
+import { authRoutes } from './routes/auth.js'
+import { oidcRoutes } from './routes/oidc.js'
+import { workspaceRoutes } from './routes/workspaces.js'
+import { emailTriggerRoutes } from './routes/email-trigger.js'
+import { topicRoutes } from './routes/topics.js'
 import { initSnapshotSchedule } from './utils/config-snapshot.js'
 
 const fastify = Fastify({
@@ -18,7 +23,7 @@ const fastify = Fastify({
 
 await fastify.register(cors, {
   origin: process.env.NODE_ENV === 'production' ? true : ['http://localhost:5173', 'http://localhost:5174'],
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'DELETE'],
 })
 
 await fastify.register(chatRoutes)
@@ -28,6 +33,11 @@ await fastify.register(onboardingRoutes)
 await fastify.register(zoneRoutes)
 await fastify.register(messengerRoutes)
 await fastify.register(statusRoutes)
+await fastify.register(authRoutes)
+await fastify.register(oidcRoutes)
+await fastify.register(workspaceRoutes)
+await fastify.register(emailTriggerRoutes)
+await fastify.register(topicRoutes)
 
 // Serve UI static files in production
 if (process.env.NODE_ENV === 'production') {

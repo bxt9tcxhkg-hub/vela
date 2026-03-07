@@ -22,8 +22,8 @@ const ADAPTERS: Record<string, BackendAdapter> = {
 }
 
 export function getAdapter(backend?: string): BackendAdapter {
-  const name = backend ?? process.env.VELA_BACKEND ?? 'anthropic'
-  return ADAPTERS[name] ?? anthropicAdapter
+  const name = backend ?? process.env.VELA_BACKEND ?? 'local'
+  return ADAPTERS[name] ?? ollamaAdapter
 }
 
 /** Fallback-Adapter: versucht bevorzugten Backend, dann nächsten verfügbaren */
@@ -32,7 +32,7 @@ export async function getAvailableAdapter(preferred?: string): Promise<BackendAd
   if (await preferredAdapter.isAvailable()) return preferredAdapter
 
   // Fallback-Reihenfolge
-  const fallbacks: BackendAdapter[] = [anthropicAdapter, groqAdapter, geminiAdapter, ollamaAdapter, openaiAdapter]
+  const fallbacks: BackendAdapter[] = [ollamaAdapter, groqAdapter, geminiAdapter, openaiAdapter, anthropicAdapter]
   for (const adapter of fallbacks) {
     if (adapter.name !== preferredAdapter.name && await adapter.isAvailable()) {
       console.log(`✦ Backend-Fallback: ${preferredAdapter.name} → ${adapter.name}`)

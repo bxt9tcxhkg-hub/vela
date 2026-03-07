@@ -56,7 +56,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
       prefTone: process.env.VELA_PREF_TONE ?? 'einfach',
       prefPurpose: process.env.VELA_PREF_PURPOSE ?? 'alltag',
       prefName: process.env.VELA_PREF_NAME ?? '',
-      backend: process.env.VELA_BACKEND ?? 'anthropic',
+      backend: process.env.VELA_BACKEND ?? 'local',
     })
     return reply
       .header('Content-Type', 'application/json')

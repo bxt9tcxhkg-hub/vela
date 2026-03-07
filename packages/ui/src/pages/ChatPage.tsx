@@ -9,6 +9,8 @@ function randomId() {
 }
 
 const API_BASE = 'http://localhost:3000'
+type TopicKey = 'terminassistenz' | 'ernaehrung' | 'alltag'
+const TOPIC_LABELS: Record<TopicKey, string> = { terminassistenz: 'Terminassistenz', ernaehrung: 'Ernährung', alltag: 'Alltag' }
 
 export function ChatPage() {
   const { state, dispatch } = useVelaStore()
@@ -16,12 +18,29 @@ export function ChatPage() {
   const [streamingId, setStreamingId] = useState<string | null>(null)
   const [streamingContent, setStreamingContent] = useState('')
   const [lastMessage, setLastMessage] = useState<string>('')
+  const [activeTopic, setActiveTopic] = useState<TopicKey>(() => {
+    try {
+      const raw = localStorage.getItem('vela_active_topic')
+      if (raw === 'terminassistenz' || raw === 'ernaehrung' || raw === 'alltag') return raw
+      const topicsRaw = localStorage.getItem('vela_topics')
+      if (topicsRaw) {
+        const parsed = JSON.parse(topicsRaw) as string[]
+        const first = parsed.find((t) => t === 'terminassistenz' || t === 'ernaehrung' || t === 'alltag')
+        if (first) return first as TopicKey
+      }
+    } catch {}
+    return 'alltag'
+  })
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [state.messages, state.isTyping])
+
+  useEffect(() => {
+    localStorage.setItem('vela_active_topic', activeTopic)
+  }, [activeTopic])
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -83,10 +102,12 @@ export function ChatPage() {
     setStreamingContent('')
 
     try {
+      const userId = localStorage.getItem('vela_user_id') ?? 'vela-user-local'
+      const channelId = 'ui-main'
       const response = await fetch(`${API_BASE}/api/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages, stream: true }),
+        body: JSON.stringify({ messages: apiMessages, stream: true, userId, channelId, explicitTopic: activeTopic }),
       })
 
       if (!response.ok || !response.body) {
@@ -168,6 +189,18 @@ export function ChatPage() {
             <span className="pulse-green w-1.5 h-1.5 rounded-full bg-[var(--success)] inline-block"></span>
             <span className="text-xs text-[var(--text-secondary)]">Online</span>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-[var(--text-secondary)]">Aktives Thema</label>
+          <select
+            value={activeTopic}
+            onChange={(e) => setActiveTopic(e.target.value as TopicKey)}
+            className="bg-[var(--surface-2)] border border-[var(--border)] rounded-[8px] px-2 py-1 text-xs text-[var(--text-primary)]"
+          >
+            <option value="terminassistenz">{TOPIC_LABELS.terminassistenz}</option>
+            <option value="ernaehrung">{TOPIC_LABELS.ernaehrung}</option>
+            <option value="alltag">{TOPIC_LABELS.alltag}</option>
+          </select>
         </div>
         {state.messages.length > 0 && (
           <button

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 
 type Tab = 'claude' | 'groq' | 'gemini' | 'openai' | 'ollama'
 type TrustLevel = 'cautious' | 'balanced' | 'autonomous'
+type TopicKey = 'terminassistenz' | 'ernaehrung' | 'alltag'
 
 interface HardwareInfo {
   ram_gb: number
@@ -13,6 +14,12 @@ interface HardwareInfo {
 interface OnboardingPageProps {
   onComplete: () => void
 }
+
+const topicOptions: { value: TopicKey; label: string }[] = [
+  { value: 'terminassistenz', label: 'Terminassistenz' },
+  { value: 'ernaehrung', label: 'Ernährung' },
+  { value: 'alltag', label: 'Alltag' },
+]
 
 const trustOptions: { value: TrustLevel; icon: string; label: string; description: string }[] = [
   {
@@ -37,7 +44,7 @@ const trustOptions: { value: TrustLevel; icon: string; label: string; descriptio
 
 export function OnboardingPage({ onComplete }: OnboardingPageProps) {
   const [step, setStep] = useState(1)
-  const [tab, setTab] = useState<Tab>('claude')
+  const [tab, setTab] = useState<Tab>('ollama')
   const [claudeKey, setClaudeKey] = useState('')
   const [groqKey, setGroqKey] = useState('')
   const [geminiKey, setGeminiKey] = useState('')
@@ -46,6 +53,7 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
   const [testError, setTestError] = useState('')
   const [trust, setTrust] = useState<TrustLevel>('cautious')
   const [level, setLevel] = useState<'laie' | 'poweruser' | 'entwickler'>('laie')
+  const [selectedTopics, setSelectedTopics] = useState<TopicKey[]>(['alltag'])
   const [hardware, setHardware] = useState<HardwareInfo | null>(null)
   const [hwLoading, setHwLoading] = useState(false)
 
@@ -59,7 +67,7 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
         // Auto-select recommended tab
         if (data.recommended_backend === 'groq') setTab('groq')
         else if (data.recommended_backend === 'local') setTab('ollama')
-        else setTab('claude')
+        else setTab('ollama')
       })
       .catch(() => {})
       .finally(() => setHwLoading(false))
@@ -101,9 +109,26 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
     }
   }
 
+  function ensureUserId(): string {
+    const existing = localStorage.getItem('vela_user_id')
+    if (existing) return existing
+    const created = `vela-user-${Math.random().toString(36).slice(2, 10)}`
+    localStorage.setItem('vela_user_id', created)
+    return created
+  }
+
   async function finish() {
     localStorage.setItem('vela_trust', trust)
     localStorage.setItem('vela_onboarded', 'true')
+    localStorage.setItem('vela_topics', JSON.stringify(selectedTopics))
+    const userId = ensureUserId()
+
+    await fetch('http://localhost:3000/api/onboarding/topics/select', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, topics: selectedTopics }),
+    }).catch(() => {})
+
     // Persist level preference to server
     await fetch('http://localhost:3000/api/settings', {
       method: 'POST',
@@ -336,6 +361,33 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
                     {opt.label}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[var(--text-primary)] text-sm font-medium mb-2">Themen für V1</p>
+              <div className="flex gap-2 flex-wrap">
+                {topicOptions.map((topic) => {
+                  const active = selectedTopics.includes(topic.value)
+                  return (
+                    <button
+                      key={topic.value}
+                      onClick={() => {
+                        setSelectedTopics((prev) => {
+                          if (prev.includes(topic.value)) return prev.length === 1 ? prev : prev.filter((t) => t !== topic.value)
+                          return [...prev, topic.value]
+                        })
+                      }}
+                      className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all ${
+                        active
+                          ? 'bg-[var(--accent)] text-white border-sky shadow-sm'
+                          : 'bg-[var(--surface-1)] text-[var(--text-secondary)] border-[var(--border)] hover:border-bark'
+                      }`}
+                    >
+                      {active ? '✓ ' : ''}{topic.label}
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
